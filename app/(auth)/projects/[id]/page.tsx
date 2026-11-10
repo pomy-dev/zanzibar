@@ -408,7 +408,7 @@ export default function ProjectDetailPage({ params }: { params: Params }) {
             </Button>
           </div>
 
-          {project.phases.map(phase => {
+          {project.phases.map((phase: any) => {
             // Safe date conversion
             const startDateStr = phase.startDate
               ? (phase.startDate instanceof Date

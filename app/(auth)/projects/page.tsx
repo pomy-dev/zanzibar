@@ -246,7 +246,7 @@ export default function ProjectsPage() {
 
                 <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  <span>Started: {new Date(project?.startDate).toLocaleDateString()}</span>
+                  <span>Started: {new Date(project?.startDate!).toLocaleDateString()}</span>
                 </div>
 
                 <div className="space-y-2">

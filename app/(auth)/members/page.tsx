@@ -132,7 +132,7 @@ export default function MembersPage() {
       const existing = editingAffiliate;
       const documents = listFrom(documentNames).map((name, index) =>
         ({ id: `doc_${Date.now()}_${index}`, name, category: 'Other' as const, uploadedAt: now }));
-      const statusHistory = existing?.statusHistory || [{ status: data.status, reason: 'Initial affiliate registration', changedAt: now, changedBy: user?.name || 'TUCOSWA office' }];
+      const statusHistory = existing?.statusHistory || [{ status: data.status, reason: 'Initial affiliate registration', changedAt: now, changedBy: user?.name || 'ZATUC office' }];
 
       const next: Affiliate = {
         ...data,
@@ -142,7 +142,7 @@ export default function MembersPage() {
           ? documents
           : existing?.documents || [],
         statusHistory: data.status !== existing?.status && existing
-          ? [...statusHistory, { status: data.status, reason: 'Status updated during record edit', changedAt: now, changedBy: user?.name || 'TUCOSWA office' }]
+          ? [...statusHistory, { status: data.status, reason: 'Status updated during record edit', changedAt: now, changedBy: user?.name || 'ZATUC office' }]
           : statusHistory,
         createdAt: existing?.createdAt || now, updatedAt: now
       };
@@ -168,7 +168,7 @@ export default function MembersPage() {
       affiliateName: affiliate.acronym,
       currentStatus: affiliate.status, requestedStatus,
       reason: reason.trim(),
-      requestedBy: user?.name || 'TUCOSWA office',
+      requestedBy: user?.name || 'ZATUC office',
       requestedAt: new Date(), status: 'Pending'
     };
     const next = [...statusRequests, request];
@@ -196,7 +196,7 @@ export default function MembersPage() {
             status: request.requestedStatus,
             reason: request.reason,
             changedAt: new Date(),
-            changedBy: request.decidedBy || user?.name || 'TUCOSWA office'
+            changedBy: request.decidedBy || user?.name || 'ZATUC office'
           }]
         }
         : item))
@@ -215,13 +215,13 @@ export default function MembersPage() {
 
   const exportAffiliates = () => {
     const source = JSON.parse(localStorage.getItem('affiliates') || '[]');
-    csvDownload('tucoswa-affiliates.csv', [['Affiliate ID', 'Official name', 'Acronym', 'Status', 'Financial standing', 'Declared members', 'Paid-up members', 'Sectors', 'Regions'],
+    csvDownload('ZATUC-affiliates.csv', [['Affiliate ID', 'Official name', 'Acronym', 'Status', 'Financial standing', 'Declared members', 'Paid-up members', 'Sectors', 'Regions'],
     ...source.map((item: Affiliate) => [item.affiliateId, item.officialName, item.acronym, item.status, item.financialStanding, item.declaredMembership, item.paidUpMembership, item.sectors.join('; '), item.regions.join('; ')])])
   }
 
-  const generateReport = (affiliate: Affiliate, reportType: string) => { const payments = JSON.parse(localStorage.getItem('affiliatePayments') || '[]').filter((payment: any) => payment.affiliateId === affiliate.id); const links = JSON.parse(localStorage.getItem('affiliateLinks') || '[]').filter((link: any) => link.affiliateId === affiliate.id); const report = [`TUCOSWA ${reportType}`, `Generated: ${new Date().toLocaleString()}`, '', `Affiliate: ${affiliate.officialName} (${affiliate.acronym})`, `Affiliate ID: ${affiliate.affiliateId}`, `Status: ${affiliate.status}`, `Financial standing: ${affiliate.financialStanding}`, `Declared membership: ${affiliate.declaredMembership}`, `Paid-up membership: ${affiliate.paidUpMembership}`, `Women / men / other: ${affiliate.genderBreakdown.female} / ${affiliate.genderBreakdown.male} / ${affiliate.genderBreakdown.other}`, `Sectors: ${affiliate.sectors.join(', ')}`, `Regions: ${affiliate.regions.join(', ')}`, `Shop stewards: ${affiliate.shopStewards}`, `Payments recorded: ${payments.length}`, `Linked records: ${links.length}`, '', 'Notes:', affiliate.notes || 'None'].join('\n'); textDownload(`${affiliate.acronym.toLowerCase()}-${reportType.toLowerCase().replaceAll(' ', '-')}.txt`, report) }
-  const invoice = (affiliate: Affiliate) => { const payments = JSON.parse(localStorage.getItem('affiliatePayments') || '[]').filter((payment: any) => payment.affiliateId === affiliate.id); const monthlyRate = Number.parseFloat((affiliate.duesRate || '').replace(/[^0-9.]/g, '')) || 0; const estimatedArrears = Math.max(0, affiliate.declaredMembership - affiliate.paidUpMembership) * monthlyRate; textDownload(`${affiliate.acronym.toLowerCase()}-invoice.txt`, `TUCOSWA AFFILIATION INVOICE\n${affiliate.officialName}\nIssued: ${new Date().toLocaleDateString()}\nDeclared membership: ${affiliate.declaredMembership}\nDues rate: ${affiliate.duesRate || 'Not recorded'}\nPayments recorded: ${payments.length}\nEstimated arrears: E${estimatedArrears.toFixed(2)}\nNote: Estimate is based on the declared/paid-up membership gap; finance should verify before issuing.`) }
-  const certificate = (affiliate: Affiliate) => textDownload(`${affiliate.acronym.toLowerCase()}-good-standing.txt`, `TUCOSWA GOOD-STANDING CERTIFICATE\n\nThis certifies that ${affiliate.officialName} (${affiliate.acronym}) is recorded as ${affiliate.financialStanding} as of ${new Date().toLocaleDateString()}.\n\nSecretary General: ${user?.name || 'TUCOSWA office'}`)
+  const generateReport = (affiliate: Affiliate, reportType: string) => { const payments = JSON.parse(localStorage.getItem('affiliatePayments') || '[]').filter((payment: any) => payment.affiliateId === affiliate.id); const links = JSON.parse(localStorage.getItem('affiliateLinks') || '[]').filter((link: any) => link.affiliateId === affiliate.id); const report = [`ZATUC ${reportType}`, `Generated: ${new Date().toLocaleString()}`, '', `Affiliate: ${affiliate.officialName} (${affiliate.acronym})`, `Affiliate ID: ${affiliate.affiliateId}`, `Status: ${affiliate.status}`, `Financial standing: ${affiliate.financialStanding}`, `Declared membership: ${affiliate.declaredMembership}`, `Paid-up membership: ${affiliate.paidUpMembership}`, `Women / men / other: ${affiliate.genderBreakdown.female} / ${affiliate.genderBreakdown.male} / ${affiliate.genderBreakdown.other}`, `Sectors: ${affiliate.sectors.join(', ')}`, `Regions: ${affiliate.regions.join(', ')}`, `Shop stewards: ${affiliate.shopStewards}`, `Payments recorded: ${payments.length}`, `Linked records: ${links.length}`, '', 'Notes:', affiliate.notes || 'None'].join('\n'); textDownload(`${affiliate.acronym.toLowerCase()}-${reportType.toLowerCase().replaceAll(' ', '-')}.txt`, report) }
+  const invoice = (affiliate: Affiliate) => { const payments = JSON.parse(localStorage.getItem('affiliatePayments') || '[]').filter((payment: any) => payment.affiliateId === affiliate.id); const monthlyRate = Number.parseFloat((affiliate.duesRate || '').replace(/[^0-9.]/g, '')) || 0; const estimatedArrears = Math.max(0, affiliate.declaredMembership - affiliate.paidUpMembership) * monthlyRate; textDownload(`${affiliate.acronym.toLowerCase()}-invoice.txt`, `ZATUC AFFILIATION INVOICE\n${affiliate.officialName}\nIssued: ${new Date().toLocaleDateString()}\nDeclared membership: ${affiliate.declaredMembership}\nDues rate: ${affiliate.duesRate || 'Not recorded'}\nPayments recorded: ${payments.length}\nEstimated arrears: E${estimatedArrears.toFixed(2)}\nNote: Estimate is based on the declared/paid-up membership gap; finance should verify before issuing.`) }
+  const certificate = (affiliate: Affiliate) => textDownload(`${affiliate.acronym.toLowerCase()}-good-standing.txt`, `ZATUC GOOD-STANDING CERTIFICATE\n\nThis certifies that ${affiliate.officialName} (${affiliate.acronym}) is recorded as ${affiliate.financialStanding} as of ${new Date().toLocaleDateString()}.\n\nSecretary General: ${user?.name || 'ZATUC office'}`)
 
   const handleAffiliateAction = (payload: Record<string, string>) => {
     if (!selectedAffiliate || !affiliateAction) return;
@@ -312,7 +312,7 @@ export default function MembersPage() {
     const affiliate = affiliates.find(item => item.id === member.affiliateId);
     textDownload(
       `${member.memberId}-${kind}.txt`,
-      `TUCOSWA ${kind.toUpperCase()}\n\n
+      `ZATUC ${kind.toUpperCase()}\n\n
       Member: ${member.name}\nMember ID: ${member.memberId}\n
       Affiliate: ${affiliate?.officialName || 'Unlinked'}\n
       Workplace: ${member.workplace}\n
@@ -342,7 +342,7 @@ export default function MembersPage() {
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={view === 'affiliates'
           ? exportAffiliates
-          : () => csvDownload('tucoswa-workers.csv', [['Member ID', 'Name', 'Affiliate', 'Status', 'Subscription'],
+          : () => csvDownload('ZATUC-workers.csv', [['Member ID', 'Name', 'Affiliate', 'Status', 'Subscription'],
           ...filteredMembers.map(member => [member.memberId, member.name,
           affiliates.find(item => item.id === member.affiliateId)?.acronym || 'Unlinked',
           member.tucoswaStatus || 'Active',
