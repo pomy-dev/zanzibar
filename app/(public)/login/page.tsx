@@ -104,8 +104,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl">TUCOSWA</CardTitle>
-          <CardDescription>Management System</CardDescription>
+          <CardTitle className="text-2xl">ZATUC</CardTitle>
+          <CardDescription>Zanzibar Trade Union Congress · Member portal</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
