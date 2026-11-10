@@ -88,7 +88,7 @@ export default function PublicWebsite() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a href="#top" className="flex items-center gap-3">
             {/* <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e96b3b] text-xl font-black text-white shadow-lg shadow-orange-900/10">T</span> */}
-            <img src="/zatuc-logo.png" alt="ZATUC logo" className="h-11 w-11 rounded-2xl object-contain bg-white p-1 shadow-lg shadow-orange-900/10" />
+            <img src="/zatuc-logo.png" alt="ZATUC logo" className="h-11 w-11 object-stretch rounded-2xl shadow-lg shadow-orange-900/10" />
             <span>
               <span className="block text-lg font-black tracking-tight text-[#173f5f]">ZATUC</span>
               <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Solidarity forever.</span>
@@ -105,6 +105,7 @@ export default function PublicWebsite() {
             <Button type="button" className="bg-[#e96b3b] text-white shadow-lg shadow-orange-900/15 hover:bg-[#d9582b]" onClick={() => setShowAddMemberModal(true)}>Join ZATUC</Button>
           </div>
         </div>
+        
       </nav>
 
       <main id="top">
