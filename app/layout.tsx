@@ -11,15 +11,12 @@ import { cn } from "@/lib/constants";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
-
 // Note: Cannot export metadata in Client Components
 // Moving to separate root layout if needed
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   useEffect(() => {
     initializeDummyData()
   }, [])
