@@ -41,6 +41,15 @@ export const dummyBranches: Branch[] = [
   }
 ]
 
+// Local demo identities used by the browser-only authentication provider.
+export const dummyUsers = [
+  { id: 'user_sg', email: 'sg@zanzibar.org', name: 'Secretary General', role: 'sg', branchId: 'branch_main' },
+  { id: 'user_accountant', email: 'accountant@zanzibar.org', name: 'Accountant', role: 'accountant', branchId: 'branch_main' },
+  { id: 'user_project_coordinator', email: 'projectcoordinator@zanzibar.org', name: 'Project Coordinator', role: 'project_coordinator', branchId: 'branch_main' },
+  { id: 'user_events_manager', email: 'eventsmanager@zanzibar.org', name: 'Events Manager', role: 'events_manager', branchId: 'branch_main' },
+  { id: 'user_branch_admin', email: 'branchadmin@zanzibar.org', name: 'Branch Admin', role: 'branch_admin', branchId: 'branch_1' }
+].map((user, index) => ({ ...user, createdAt: new Date(`2024-01-0${index + 1}`).toISOString(), status: 'active' as const }))
+
 export const dummyBoardMembers: BoardMember[] = [
   {
     id: 'board_1',
@@ -399,9 +408,9 @@ export const dummyHelpDeskCases: HelpDeskCase[] = [
 ]
 
 export function initializeDummyData() {
-  // Remove legacy demo credentials and locally cached auth profiles.
-  localStorage.removeItem('users')
-  localStorage.removeItem('auth_user')
+  if (!localStorage.getItem('users')) {
+    localStorage.setItem('users', JSON.stringify(dummyUsers))
+  }
 
   if (!localStorage.getItem('branches')) {
     localStorage.setItem('branches', JSON.stringify(dummyBranches))

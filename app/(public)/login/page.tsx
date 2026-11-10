@@ -9,66 +9,12 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
-import { getUserById } from '@/lib/utils'
-import { getRoleAccesses, recordActivityLog } from '@/lib/constants'
-import { ActivityLogEntry, Role } from '@/lib/types'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
-import { useUserIP } from '@/lib/userUserIp'
-
-async function getUserProfile(userId: string) {
-  const supabase = getSupabaseBrowserClient()
-  if (!supabase) throw new Error('Supabase is not configured.')
-  const { data: { session }, error } = await supabase.auth.getSession()
-  if (error) throw error
-  if (!session) return
-  const userProfile = await getUserById(supabase, session, userId)
-
-  return userProfile;
-}
-
-async function getLandingRoute(role?: Role): Promise<string> {
-  if (!role) return '/settings';
-
-  const accesses = getRoleAccesses(role);
-
-  for (const access of accesses) {
-    switch (access) {
-      case 'Overview':
-        return '/dashboard';
-
-      case 'Financial':
-        return '/financial';
-
-      case 'Branches':
-        return '/branches';
-
-      case 'Projects':
-        return '/projects';
-
-      case 'Events':
-        return '/events';
-
-      case 'Grievances':
-        return '/helpdesk';
-
-      case 'E-Filing':
-        return '/e-filing';
-
-      case 'Settings':
-        return '/settings';
-
-      case 'Users':
-        return '/users';
-
-      case 'Tucoswa Affiliates':
-        return '/members';
-
-      default:
-        continue;
-    }
-  }
-
-  return '/settings';
+const landingRoutes: Record<string, string> = {
+  sg: '/dashboard',
+  accountant: '/financial',
+  project_coordinator: '/projects',
+  events_manager: '/events',
+  branch_admin: '/branches'
 }
 
 export default function LoginPage() {
@@ -78,7 +24,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
-  const { ip } = useUserIP();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,12 +32,7 @@ export default function LoginPage() {
 
     try {
       const authenticatedUser = await login(email, password)
-      const profile = await getUserProfile(authenticatedUser.id)
-
-      const route = await getLandingRoute(profile?.role)
-      router.push(route)
-
-      await recordActivityLog('Login', 'Successful login', authenticatedUser.id, ip!)
+      router.push(landingRoutes[authenticatedUser.role] ?? '/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -126,7 +66,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
-              {/* <p className="text-xs text-muted-foreground">Demo: sg@tucoswa.org</p> */}
+              <p className="text-xs text-muted-foreground">Demo accounts end in @zanzibar.org</p>
             </div>
 
             <div className="space-y-2">
@@ -139,7 +79,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
-              {/* <p className="text-xs text-muted-foreground">Demo: demo123</p> */}
+              <p className="text-xs text-muted-foreground">Password: demo123</p>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -147,17 +87,17 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* <div className="mt-6 p-3 bg-accent/10 rounded-lg">
+          <div className="mt-6 p-3 bg-accent/10 rounded-lg">
             <p className="text-xs font-semibold mb-2">Demo Accounts:</p>
             <ul className="text-xs space-y-1 text-muted-foreground">
-              <li>• Secretary General: sg@tucoswa.org</li>
-              <li>• Branch Admin: branch@tucoswa.org</li>
-              <li>• Treasurer: treasurer@tucoswa.org</li>
-              <li>• Project Coord: projects@tucoswa.org</li>
-              <li>• Events Manager: events@tucoswa.org</li>
+              <li>• Secretary General: sg@zanzibar.org</li>
+              <li>• Accountant: accountant@zanzibar.org</li>
+              <li>• Project Coordinator: projectcoordinator@zanzibar.org</li>
+              <li>• Events Manager: eventsmanager@zanzibar.org</li>
+              <li>• Branch Admin: branchadmin@zanzibar.org</li>
             </ul>
             <p className="text-xs mt-2 font-semibold">Password: demo123</p>
-          </div> */}
+          </div>
         </CardContent>
       </Card>
     </div>

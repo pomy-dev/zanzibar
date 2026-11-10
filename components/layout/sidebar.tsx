@@ -44,17 +44,18 @@ export function Sidebar() {
     return await getAccessesByRoleName(supabase, session, roleName)
   }
 
-  const visibleItems = menuItems.filter(item => userAccesses.includes(item.label))
+  // const visibleItems = menuItems.filter(item => userAccesses.includes(item.label))
+  // const visibleItems = menuItems.filter(item => userAccesses.includes(item.label))
 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold text-sidebar-foreground">Tucoswa Union</h1>
+        <h1 className="text-xl font-bold text-sidebar-foreground">ZATUC</h1>
         <p className="text-xs text-sidebar-foreground/70 mt-1">Management System</p>
       </div>
 
       <nav className="flex-1 overflow-auto p-4 space-y-2">
-        {visibleItems.map((item) => {
+        {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (

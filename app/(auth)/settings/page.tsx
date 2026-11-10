@@ -311,7 +311,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-sm font-medium">TUCOSWA Management System</p>
+            <p className="text-sm font-medium">ZATUC Management System</p>
             <p className="text-sm text-muted-foreground">Version 1.0</p>
           </div>
           <p className="text-sm text-muted-foreground">
