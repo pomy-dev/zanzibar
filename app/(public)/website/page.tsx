@@ -14,7 +14,7 @@ export default function PublicWebsite() {
   const [statistics, setStatistics] = useState({
     members: 0,
     projects: 0,
-    branches: 3,
+    branches: 2,
     cases: 0
   });
 
@@ -34,8 +34,6 @@ export default function PublicWebsite() {
     const projects = JSON.parse(localStorage.getItem('projects') || '[]');
     const cases = JSON.parse(localStorage.getItem('helpdesk_cases') || '[]');
     const articles = JSON.parse(localStorage.getItem('articles') || '[]');
-    const branchesData = JSON.parse(localStorage.getItem('branches') || '[]');
-
     const ongoing = projects.filter((p: any) => p.status === 'ongoing' || p.status === 'in_progress');
 
     const published = articles.filter((a: any) => a.published === true);
@@ -45,7 +43,7 @@ export default function PublicWebsite() {
     setStatistics({
       members: members.length,
       projects: ongoing.length,
-      branches: branchesData.length || 3,
+      branches: 2,
       cases: cases.filter((c: any) => c.status !== 'completed' && c.status !== 'resolved').length
     });
   }, []);
@@ -83,17 +81,17 @@ export default function PublicWebsite() {
   return (
     <div className="min-h-screen overflow-hidden bg-[#f8fafb] text-slate-900">
       <div className="bg-[#173f5f] px-4 py-2 text-center text-xs font-semibold tracking-[0.18em] text-white/90">
-        TUCOSWA · TRADE UNION CONGRESS OF SWAZILAND
+        ZATUC · ZANZIBAR TRADE UNION CONGRESS
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a href="#top" className="flex items-center gap-3">
             {/* <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e96b3b] text-xl font-black text-white shadow-lg shadow-orange-900/10">T</span> */}
-            <img src="/logo.png" alt="TUCOSWA logo" className="h-11 w-11 rounded-2xl object-cover shadow-lg shadow-orange-900/10" />
+            <img src="/zatuc-logo.png" alt="ZATUC logo" className="h-11 w-11 rounded-2xl object-contain bg-white p-1 shadow-lg shadow-orange-900/10" />
             <span>
-              <span className="block text-lg font-black tracking-tight text-[#173f5f]">TUCOSWA</span>
-              <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">One voice. One movement.</span>
+              <span className="block text-lg font-black tracking-tight text-[#173f5f]">ZATUC</span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Solidarity forever.</span>
             </span>
           </a>
           <div className="hidden items-center gap-8 text-sm font-semibold text-slate-600 md:flex">
@@ -104,7 +102,7 @@ export default function PublicWebsite() {
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" className="hidden text-[#173f5f] sm:inline-flex" onClick={() => window.location.href = '/login'}>Member login</Button>
-            <Button type="button" className="bg-[#e96b3b] text-white shadow-lg shadow-orange-900/15 hover:bg-[#d9582b]" onClick={() => setShowAddMemberModal(true)}>Join the movement</Button>
+            <Button type="button" className="bg-[#e96b3b] text-white shadow-lg shadow-orange-900/15 hover:bg-[#d9582b]" onClick={() => setShowAddMemberModal(true)}>Join ZATUC</Button>
           </div>
         </div>
       </nav>
@@ -116,31 +114,31 @@ export default function PublicWebsite() {
           <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 md:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
             <div className="relative z-10">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/80">
-                <span className="h-2 w-2 rounded-full bg-[#f4c95d]" /> A united labour centre for Eswatini
+                <span className="h-2 w-2 rounded-full bg-[#f4c95d]" /> A united voice for Zanzibar’s workers
               </div>
-              <h1 className="max-w-3xl text-5xl font-black leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">Work has dignity.<br /><span className="text-[#f4c95d]">Workers have power.</span></h1>
-              <p className="mt-7 max-w-xl text-lg leading-8 text-slate-200 sm:text-xl">TUCOSWA brings workers and unions together to advance social justice, democratic participation, decent work, and a stronger voice for working families across Swaziland.</p>
+              <h1 className="max-w-3xl text-5xl font-black leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">Dignity at work.<br /><span className="text-[#f4c95d]">Solidarity in action.</span></h1>
+              <p className="mt-7 max-w-xl text-lg leading-8 text-slate-200 sm:text-xl">The Zanzibar Trade Union Congress brings workers and unions together to advance decent work, social dialogue, and the rights and welfare of working people across Unguja and Pemba.</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Button size="lg" className="gap-2 bg-[#e96b3b] px-6 text-white hover:bg-[#d9582b]" onClick={() => setShowAddMemberModal(true)}><UsersRound className="h-4 w-4" /> Become a member</Button>
                 <Button size="lg" variant="outline" className="border-white/30 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white" onClick={() => aboutSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Discover our work <ArrowRight className="h-4 w-4" /></Button>
               </div>
               <div className="mt-12 grid max-w-lg grid-cols-3 gap-5 border-t border-white/15 pt-6">
                 <div><div className="text-3xl font-black text-[#f4c95d]">{statistics.members || '—'}</div><div className="mt-1 text-xs uppercase tracking-wider text-slate-300">Members</div></div>
-                <div><div className="text-3xl font-black text-[#f4c95d]">{statistics.branches || '3'}</div><div className="mt-1 text-xs uppercase tracking-wider text-slate-300">Regions</div></div>
+                <div><div className="text-3xl font-black text-[#f4c95d]">{statistics.branches || '2'}</div><div className="mt-1 text-xs uppercase tracking-wider text-slate-300">Islands</div></div>
                 <div><div className="text-3xl font-black text-[#f4c95d]">{statistics.projects || '—'}</div><div className="mt-1 text-xs uppercase tracking-wider text-slate-300">Active efforts</div></div>
               </div>
             </div>
             <div className="relative">
               <div className="absolute -inset-3 rounded-[2rem] border border-[#f4c95d]/30 rotate-3" />
               <div className="relative overflow-hidden rounded-[2rem] border-8 border-white/10 bg-slate-800 shadow-2xl shadow-black/30 transition duration-700 hover:-translate-y-2 hover:rotate-1">
-                <img src="/tucoswa-team.jpeg" alt="Workers standing together in solidarity in Eswatini" className="aspect-[4/3] w-full object-cover" />
+                <img src="/zatuc-union-march.png" alt="Workers marching together in Tanzania" className="aspect-[4/3] w-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0f2d46] via-[#0f2d46]/70 to-transparent p-6 pt-20">
                   <p className="max-w-sm text-sm font-semibold leading-6 text-white">“In unity we are guaranteed strength.”</p>
-                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-[#f4c95d]">The TUCOSWA spirit</p>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-[#f4c95d]">The ZATUC spirit</p>
                 </div>
               </div>
               <div className="absolute -bottom-5 -left-5 hidden rounded-2xl bg-[#f4c95d] px-5 py-4 text-[#173f5f] shadow-xl sm:block">
-                <div className="text-2xl font-black">01</div><div className="text-[10px] font-black uppercase tracking-widest">One federation</div>
+                <div className="text-2xl font-black">01</div><div className="text-[10px] font-black uppercase tracking-widest">One workers’ voice</div>
               </div>
             </div>
           </div>
@@ -150,17 +148,17 @@ export default function PublicWebsite() {
           <div className="grid gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">Our movement</p>
-              <h2 className="mt-4 text-4xl font-black leading-tight tracking-tight text-[#173f5f] sm:text-5xl">Built from unity. Focused on justice.</h2>
-              <p className="mt-6 text-lg leading-8 text-slate-600">Formed in 2012 through the coming together of major union centres, TUCOSWA exists to strengthen workers’ collective voice and defend the rights of every worker in Swaziland.</p>
-              <p className="mt-5 text-base leading-7 text-slate-500">Our work connects workplace organising with the wider pursuit of dignity, equality, democracy, and accountable institutions.</p>
+              <h2 className="mt-4 text-4xl font-black leading-tight tracking-tight text-[#173f5f] sm:text-5xl">Zanzibar’s workers, organised for dignity.</h2>
+              <p className="mt-6 text-lg leading-8 text-slate-600">ZATUC is Zanzibar’s national trade union centre, bringing affiliated unions together around workers’ rights, decent work, social dialogue, and a stronger collective voice.</p>
+              <p className="mt-5 text-base leading-7 text-slate-500">From workplace organising to regional cooperation, our movement connects the everyday realities of workers with the policies and institutions that shape their lives.</p>
               <Button variant="outline" className="mt-7 gap-2 border-[#173f5f]/20 text-[#173f5f] hover:bg-[#173f5f] hover:text-white" onClick={() => setShowFileModal(true)}>Raise a workplace concern <ArrowRight className="h-4 w-4" /></Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { icon: Handshake, title: 'Unity across unions', copy: 'A shared platform that brings workers together across sectors and regions.' },
-                { icon: Scale, title: 'Social justice', copy: 'Advocating for fair treatment, decent work, and the dignity of working families.' },
-                { icon: Megaphone, title: 'A stronger voice', copy: 'Turning workers’ lived experience into collective advocacy and public action.' },
-                { icon: ShieldCheck, title: 'Rights at work', copy: 'Standing for freedom of association, organising, and safe, fair workplaces.' }
+                { icon: Handshake, title: 'Unity across Zanzibar', copy: 'A shared platform for affiliates and members across Unguja, Pemba, and every sector of work.' },
+                { icon: Scale, title: 'Decent work', copy: 'Advocating for fair treatment, safe workplaces, and the dignity of working families.' },
+                { icon: Megaphone, title: 'Social dialogue', copy: 'Turning workers’ lived experience into informed advocacy and constructive public action.' },
+                { icon: ShieldCheck, title: 'Rights at work', copy: 'Standing for freedom of association, organising, equality, and fair representation.' }
               ].map(({ icon: Icon, title, copy }, index) => (
                 <div key={title} className={`group rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition duration-500 hover:-translate-y-1 hover:border-[#e96b3b]/40 hover:shadow-xl ${index === 1 ? 'sm:translate-y-8' : ''}`}>
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#173f5f]/8 text-[#173f5f] transition group-hover:bg-[#e96b3b] group-hover:text-white"><Icon className="h-5 w-5" /></div>
@@ -173,24 +171,24 @@ export default function PublicWebsite() {
         </section>
 
         <section
-          aria-label="TUCOSWA workers standing together in solidarity"
+          aria-label="Zanzibar communities standing together in solidarity"
           className="min-h-[100svh] w-full bg-[#173f5f] bg-cover bg-center bg-fixed"
-          style={{ backgroundImage: "url('/tucoswa-solidarity.jpg')" }}
+          style={{ backgroundImage: "url('/zanzibar-community.jpg')" }}
         />
 
         <section id="priorities" className="bg-[#eef3f5] px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-2xl"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">What we stand for</p><h2 className="mt-4 text-4xl font-black tracking-tight text-[#173f5f] sm:text-5xl">A movement that organises, educates, and acts.</h2></div>
+            <div className="max-w-2xl"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">What we stand for</p><h2 className="mt-4 text-4xl font-black tracking-tight text-[#173f5f] sm:text-5xl">A workers’ movement rooted in Zanzibar.</h2></div>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {[{ number: '01', title: 'Organise', copy: 'Build strong, democratic structures where members can participate and lead.' }, { number: '02', title: 'Educate', copy: 'Equip shop stewards and workers with the knowledge to defend rights and shape policy.' }, { number: '03', title: 'Act', copy: 'Advocate for reforms that protect freedom of association, equality, and decent work.' }].map(item => (
+              {[{ number: '01', title: 'Organise', copy: 'Build strong, democratic structures where members can participate and lead.' }, { number: '02', title: 'Educate', copy: 'Equip workers with the knowledge to understand rights, responsibilities, and collective action.' }, { number: '03', title: 'Represent', copy: 'Carry workers’ priorities into social dialogue and advocacy for fair, inclusive workplaces.' }].map(item => (
                 <div key={item.number} className="relative overflow-hidden rounded-3xl bg-[#173f5f] p-8 text-white shadow-xl transition duration-500 hover:-translate-y-2">
                   <span className="absolute -right-3 -top-8 text-[9rem] font-black leading-none text-white/5">{item.number}</span><div className="relative"><span className="text-sm font-black text-[#f4c95d]">{item.number}</span><h3 className="mt-10 text-3xl font-black">{item.title}</h3><p className="mt-4 leading-7 text-slate-300">{item.copy}</p></div>
                 </div>
               ))}
             </div>
             <div className="mt-8 grid gap-6 rounded-3xl bg-white p-5 shadow-sm md:grid-cols-[0.9fr_1.1fr] md:p-8">
-              <img src="/tucoswa-march.jpeg" alt="Workers in a textile workplace in Eswatini" className="h-full min-h-64 w-full rounded-2xl object-cover" />
-              <div className="flex flex-col justify-center p-2 md:p-6"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">Democracy is workplace work</p><h3 className="mt-4 text-3xl font-black leading-tight text-[#173f5f]">Accountability grows when workers have a seat at the table.</h3><p className="mt-5 leading-7 text-slate-600">TUCOSWA’s organising and education work is designed to bring decision-making closer to members — strengthening local shop stewards councils, participation, gender equality, and accountable union structures.</p><div className="mt-7 flex items-center gap-3 text-sm font-bold text-[#173f5f]"><BookOpen className="h-5 w-5 text-[#e96b3b]" /> Education, participation, action</div></div>
+              <img src="/stone-town-workers.jpg" alt="Workers and traders in Stone Town, Zanzibar" className="h-full min-h-64 w-full rounded-2xl object-cover" />
+              <div className="flex flex-col justify-center p-2 md:p-6"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">Democracy is workplace work</p><h3 className="mt-4 text-3xl font-black leading-tight text-[#173f5f]">Accountability grows when workers have a seat at the table.</h3><p className="mt-5 leading-7 text-slate-600">ZATUC’s organising and education work connects workplace realities with social dialogue — strengthening participation, gender equality, and accountable union structures.</p><div className="mt-7 flex items-center gap-3 text-sm font-bold text-[#173f5f]"><BookOpen className="h-5 w-5 text-[#e96b3b]" /> Education, participation, representation</div></div>
             </div>
           </div>
         </section>
@@ -201,7 +199,7 @@ export default function PublicWebsite() {
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">Stay connected</p>
               <h2 className="mt-4 text-4xl font-black tracking-tight text-[#173f5f]">From the movement</h2>
             </div>
-            <p className="max-w-sm text-sm leading-6 text-slate-500">Follow union news, events, and member-led action from across Swaziland.</p>
+            <p className="max-w-sm text-sm leading-6 text-slate-500">Follow union news, events, and member-led action from across Zanzibar.</p>
           </div>
           {publishedArticles.length > 0
             ? <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -218,19 +216,19 @@ export default function PublicWebsite() {
         </section>
 
         <section
-          aria-label="Eswatini workers in the workplace"
+          aria-label="Zanzibar heritage, livelihoods, and working communities"
           className="min-h-[100svh] w-full bg-[#173f5f] bg-cover bg-center bg-fixed"
-          style={{ backgroundImage: "url('/eswatini-workers.jpg')" }}
+          style={{ backgroundImage: "url('/zanzibar-heritage.jpg')" }}
         />
 
         <section id="contact" className="bg-[#e96b3b] px-4 py-16 text-white sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-white/75">Your voice matters</p>
-              <h2 className="mt-3 max-w-2xl text-4xl font-black tracking-tight sm:text-5xl">Stand with workers. Strengthen the movement.</h2>
+              <h2 className="mt-3 max-w-2xl text-4xl font-black tracking-tight sm:text-5xl">Stand with workers. Strengthen Zanzibar’s movement.</h2>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="bg-[#173f5f] px-6 text-white hover:bg-[#0e2c43]" onClick={() => setShowAddMemberModal(true)}>Join TUCOSWA <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button size="lg" className="bg-[#173f5f] px-6 text-white hover:bg-[#0e2c43]" onClick={() => setShowAddMemberModal(true)}>Join ZATUC <ArrowRight className="ml-2 h-4 w-4" /></Button>
               <Button size="lg" variant="outline" className="border-white/50 bg-transparent text-white hover:bg-white hover:text-[#e96b3b]" onClick={() => setShowFileModal(true)}>File a grievance</Button>
             </div>
           </div>
@@ -278,8 +276,9 @@ export default function PublicWebsite() {
       {/* Footer */}
       <footer className="bg-muted mt-12 py-8 border-t">
         <div className="max-w-7xl mx-auto px-4 text-center text-muted-foreground">
-          <p className="font-semibold text-[#173f5f]">TUCOSWA · Trade Union Congress of Eswatini</p>
-          <p className="mt-2 text-xs">A public-facing concept informed by reporting from ITUC, ITUC-Africa, and TUC Aid. Imagery: ITUC-Africa and United Nations Eswatini.</p>
+          <p className="font-semibold text-[#173f5f]">ZATUC · Zanzibar Trade Union Congress</p>
+          <p className="mt-2 text-xs">P.O. Box 667, Zanzibar, Tanzania · +255 24 2236614 · zatuc_congress@yahoo.com</p>
+          <p className="mt-2 text-xs">Public information references: <a className="underline hover:text-[#173f5f]" href="https://www.ituc-africa.org/Zanzibar-Trade-Union-Congress-ZATUC.html" target="_blank" rel="noreferrer">ITUC-Africa</a> and <a className="underline hover:text-[#173f5f]" href="https://eatuc.org/affiliates/" target="_blank" rel="noreferrer">EATUC</a>. Image credits: <a className="underline hover:text-[#173f5f]" href="https://dailynews.co.tz/union-tanzanias-journey-of-shared-prosperity/" target="_blank" rel="noreferrer">Daily News Tanzania</a>, <a className="underline hover:text-[#173f5f]" href="https://www.adventurevolunteer.org/en/project/volunteer-in-zanzibar/" target="_blank" rel="noreferrer">Adventure Volunteer</a>, <a className="underline hover:text-[#173f5f]" href="https://www.spiritedpursuit.com/blog/sp-wander-guide-stone-town-zanzibar" target="_blank" rel="noreferrer">Spirited Pursuit</a>, and <a className="underline hover:text-[#173f5f]" href="https://www.bbc.com/news/in-pictures-39030786" target="_blank" rel="noreferrer">BBC News</a>.</p>
         </div>
       </footer>
     </div>
@@ -369,7 +368,7 @@ export default function PublicWebsite() {
 
           {/* Footer */}
           <div className="p-6 border-t bg-muted/30 text-center text-sm text-muted-foreground">
-            TUCOSWA • Empowering Workers
+            ZATUC • Empowering Workers
           </div>
         </div>
       </div>
