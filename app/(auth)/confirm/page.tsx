@@ -259,12 +259,12 @@ export default function InvitationConfirmationPage() {
         <div className="text-center mb-8">
           <img
             src="/logo.png"
-            alt="TUCOSWA Logo"
+            alt="ZATUC Logo"
             className="h-16 w-16 rounded-2xl object-cover mx-auto"
           />
 
           <h1 className="mt-5 text-2xl font-black text-[#173f5f]">
-            TUCOSWA
+            ZATUC
           </h1>
 
           <p className="text-sm text-slate-500 mt-1">
@@ -414,7 +414,7 @@ export default function InvitationConfirmationPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} TUCOSWA. All rights reserved.
+          © {new Date().getFullYear()} ZATUC. All rights reserved.
         </p>
 
       </div>

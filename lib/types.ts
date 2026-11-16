@@ -6,6 +6,7 @@ export interface AppUser {
   phone?: string
   branchId?: string
   role_id: string
+  affiliateId?: string
   status: 'active' | 'inactive'
   createdAt: string
   lastLogin?: string
@@ -43,6 +44,7 @@ export interface User {
   name: string
   role: string
   branchId: string
+  affiliateId?: string
   photo?: string
   createdAt: Date
 }
@@ -56,7 +58,16 @@ export interface Branch {
   isActive: boolean
   memberCount?: number
   adminId?: string
+  admin?: AppUser
   createdAt: Date | string
+}
+
+export interface AssignBranchAdminResponse {
+  success: boolean
+  assigned: boolean
+  emailSent: boolean
+  emailId?: string
+  message: string
 }
 
 // Board Member Types
@@ -81,14 +92,14 @@ export interface AffiliateLeadership {
   name: string
   email?: string
   phone?: string
-  termOfOffice?: string
+  term_of_office?: string
 }
 
 export interface AffiliateStatusChange {
   status: AffiliateStatus
   reason: string
-  changedAt: Date
-  changedBy: string
+  changed_at?: Date
+  changed_by?: string
 }
 
 export interface AffiliateDocument {
@@ -97,68 +108,140 @@ export interface AffiliateDocument {
   category: 'Constitution' | 'Registration' | 'Minutes' | 'Resolution' | 'Financial' | 'Other'
   version?: string
   url?: string
-  uploadedAt: Date
+  uploaded_at?: Date
 }
 
 export interface Affiliate {
   id: string
-  affiliateId: string
-  officialName: string
+  affiliate_id: string
+  official_name: string
   acronym: string
-  registrationNumber?: string
-  affiliationDate: string
-  foundingDate?: string
-  physicalAddress: string
-  postalAddress?: string
-  phoneNumbers: string[]
+  registration_number?: string
+  affiliation_date: string
+  founding_date?: string
+  physical_address: string
+  postal_address?: string
+  phone_numbers: string[]
   email?: string
   website?: string
-  socialMedia?: string
-  correspondenceContact: { name: string; email?: string; phone?: string }
+  social_media?: string
+  correspondence_contact: { name: string; email?: string; phone?: string }
   leadership: AffiliateLeadership[]
-  lastCongressDate?: string
-  constitutionVersion?: string
-  executiveCommitteeSize: number
-  declaredMembership: number
-  paidUpMembership: number
-  genderBreakdown: { female: number; male: number; other: number }
-  ageGroups: string
+  last_congress_date?: string
+  constitution_version?: string
+  executive_committee_size: number
+  declared_membership: number
+  paid_up_membership: number
+  gender_breakdown: { female: number; male: number; other: number }
+  age_groups: string
   sectors: string[]
   regions: string[]
-  shopStewards: number
-  duesRate?: string
-  paymentHistory?: string
-  financialStanding: FinancialStanding
-  bankDetails?: string
+  shop_stewards: number
+  dues_rate?: string
+  payment_history?: string
+  financial_standing: FinancialStanding
+  bank_details?: string
   status: AffiliateStatus
-  statusHistory: AffiliateStatusChange[]
+  status_history: AffiliateStatusChange[]
   documents: AffiliateDocument[]
   notes?: string
   active: boolean
-  createdAt: Date
-  updatedAt: Date
+  created_at?: Date
+  updated_at?: Date
 }
 
 // Member Types
 export interface Member {
   id: string
-  branchId?: string
-  affiliateId?: string
+  branch_id?: string
+  affiliate_id?: string
   name: string
   email: string
-  memberId: string
+  member_id: string
   phone: string
   address: string
   dob: string
   workplace: string
-  nextOfKin: string
-  nextOfKinPhone: string
+  next_of_kin: string
+  next_of_kin_phone: string
   gender: 'Male' | 'Female' | 'Other'
-  jobCategory?: string
-  subscriptionStatus?: 'Paid' | 'Pending' | 'In arrears'
-  tucoswaStatus?: 'Active' | 'Resigned' | 'Deceased' | 'Transferred'
+  job_category?: string
+  subscription_status?: 'Paid' | 'Pending' | 'In arrears'
+  tucoswa_status?: 'Active' | 'Resigned' | 'Deceased' | 'Transferred'
   photo?: string
-  joinDate: Date
+  join_date: Date
+}
+
+export interface TransferEmailDetails {
+  from_branch?: string;
+  to_branch?: string;
+  from_affiliate?: string;
+  to_affiliate?: string;
+}
+
+// Extend these according to your actual data model
+export type ScopeType = 'zatuc' | 'branch' | 'affiliate' | 'member'
+
+export interface ScopeOption {
+  id: string
+  name: string
+  type: ScopeType
+}
+
+export interface FinancialRecordPayload {
+  id: string
+  type: 'income' | 'expense'
+  amount: number
+  category: string
+  description: string
+  date: Date
+  source?: IncomeSource
+  branch_id?: string
+  affiliate_id?: string
+  member_id?: string
+  evidence_file?: File | null
+  evidence_name?: string
+  created_by: string
+  receipt_url?: string
+}
+
+export type FinancialRecordInput = Omit<FinancialRecordPayload, 'id'> & { id?: string }
+
+export interface AddFinancialModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (record: FinancialRecordInput) => void | Promise<void>
+  isLoading?: boolean
+  /** Pass true when the current user is HQ (Secretary General / Accountant) */
+  isHQ?: boolean
+  /** Optional lists – replace with real data from your services */
+  branches?: Branch[]
+  affiliates?: ScopeOption[]
+  members?: ScopeOption[]
+  userId: string
+  /** Pre-select a branch (e.g. when drilling down from a body card) */
+  defaultBranchId?: string
+}
+
+export const categories = {
+  income: [
+    'Member Dues',
+    'Donations',
+    'Grants',
+    'Events Revenue',
+    'Sponsorships',
+    'Other Income',
+  ],
+  expense: [
+    'Salaries',
+    'Utilities',
+    'Office Supplies',
+    'Events',
+    'Travel',
+    'Legal & Professional',
+    'Equipment',
+    'Other Expenses',
+  ],
 }
 
 // Financial Types
@@ -190,12 +273,56 @@ export interface FinancialRecord {
   amount: number
   source?: IncomeSource
   category?: ExpenseCategory
+  receipt_url?: string
   description: string
   date: Date
   createdBy: string
 }
 
+export interface FinancialPayment {
+  id: string;
+  financial_record_id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  reference: string | null;
+  notes: string | null;
+  receipt_url: string;
+  received_by: string | null;
+  created_at: string;
+}
+
+export interface FinancialPaymentInput {
+  financial_record_id: string;
+  amount: number;
+  payment_date?: string;
+  payment_method: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
+export interface FinancialRecordFilters {
+  branch_id?: string;
+  affiliate_id?: string;
+  member_id?: string;
+  transaction_type?: TransactionType;
+  start_date?: string;
+  end_date?: string;
+}
+
 // Project Types
+export type ProjectFileKind = "image" | "document";
+
+export interface ProjectFile {
+  id: string;
+  project_id: string;
+  file_kind: ProjectFileKind;
+  name: string;
+  url: string;
+  size_bytes: number;
+  uploaded_at: string;
+}
+
 export enum ProjectStatus {
   STARTING = 'starting',
   IN_PROGRESS = 'in_progress',
@@ -207,27 +334,36 @@ export enum ProjectStatus {
 
 export interface ProjectPhase {
   id: string
+  project_id: string;
   name: string
   description: string
-  startDate: Date
-  endDate?: Date
+  start_date: Date
+  end_date?: Date
   status: ProjectStatus
 }
 
 export interface ProjectTeamMember {
-  id: string
-  userId: string
-  role: string
-  assignedDate: Date
+  id: string;
+  project_id: string;
+  user_id: string | null;
+  role: string;
+  assigned_date: string;
+  user?: {
+    id: string;
+    full_name: string;
+    email: string;
+    photo_url: string | null;
+  } | null;
 }
 
 export interface ProjectResource {
   id: string
+  project_id: string
   name: string
   quantity: number
   unit: string
   cost: number
-  usedDate: Date
+  used_date: Date
 }
 
 export interface ProjectImage {
@@ -248,55 +384,109 @@ export interface ProjectDocument {
 
 export interface Project {
   id: string
-  branchId: string
-  title: string
-  description: string
-  coordinator: string
-  phases: ProjectPhase[]
+  branch_id?: string
+  title?: string
+  description?: string
+  coordinator?: string
+  phases?: ProjectPhase[]
   status: ProjectStatus
-  budget: number
-  teamMembers: ProjectTeamMember[]
-  resources: ProjectResource[]
-  images: ProjectImage[]
-  documents: ProjectDocument[]
-  timeline: string
-  startDate?: Date
-  endDate?: Date
-  createdBy: string
-  createdAt: Date
+  budget?: number
+  teamMembers?: ProjectTeamMember[]
+  resources?: ProjectResource[]
+  images?: ProjectImage[]
+  documents?: ProjectDocument[]
+  timeline?: string
+  start_date?: Date
+  end_date?: Date
+  created_by: string
+  created_at: Date
 }
 
 // Event Types
 export interface EventFile {
-  id?: string
-  name?: string
-  url?: string
-  type?: 'image' | 'pdf'
-  uploadedAt?: Date
+  id: string;
+  event_id: string;
+  file_kind: "image" | "document";
+  name: string;
+  url: string | null;
+  mime_type: string | null;
+  uploaded_at: string;
 }
 
 export interface EventInvitation {
-  id: string
-  email?: string
-  phone?: string
-  name: string
-  status: 'invited' | 'accepted' | 'declined'
-  sentAt: Date
+  id: string;
+  event_id: string;
+  email: string | null;
+  phone: string | null;
+  name: string;
+  status: "invited" | "accepted" | "declined";
+  sent_at: Date;
 }
 
+export interface BulkEventInvitation {
+  event_id: string;
+  invitations: {
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+  }[];
+}
+
+export type EventStatus = 'draft' | 'published' | 'cancelled'
+
 export interface Event {
-  id: string
-  branchId: string
-  title: string
-  notes: string
-  date: Date
-  location: string
-  stakeholders: string[]
-  images: EventFile[]
-  documents: EventFile[]
-  invitations: EventInvitation[]
-  createdBy: string
-  createdAt: Date
+  id: string;
+  branch_id?: string | null;
+  affiliate_id?: string | null;
+  title: string;
+  notes: string;
+  event_date: string;
+  location: string;
+  stakeholders?: string[]
+  images?: EventFile[]
+  documents?: EventFile[]
+  invitations?: EventInvitation[]
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventParticipant {
+  id: string;
+  event_id: string;
+  profile_id: string | null;
+  invitation_id: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  registration_status: "registered" | "cancelled";
+  registered_at: string;
+  created_at: string;
+}
+
+export type AttendanceStatus =
+  | "pending"
+  | "present"
+  | "absent"
+  | "late"
+  | "excused";
+
+
+export interface EventAttendance {
+  id: string;
+  participant_id: string;
+  attendance_status: AttendanceStatus;
+  notes: string;
+  marked_by: string | null;
+  marked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceEvent extends Event {
+  status?: EventStatus
+  branchName?: string
+  attendance?: EventAttendance[]
 }
 
 // Helpdesk Types
@@ -307,67 +497,69 @@ export enum HelpDeskStatus {
 }
 
 export interface CaseHandler {
-  userId: string
-  userName: string
-  handledAt: Date
+  user_id: string
+  user_name: string
+  handled_at: Date
   action: string
 }
 
 export interface CaseNote {
   id: string
   content: string
-  createdBy: string
-  createdByName: string
-  createdAt: Date
+  created_by: string
+  created_by_name: string
+  created_at: Date
 }
 
 export interface CaseDocument {
   id?: string
   name: string
   url?: string
-  uploadedAt?: Date
+  uploaded_at?: Date
 }
 
 export interface HelpDeskCase {
   id: string
-  branchId?: string
+  branch_id?: string | null
+  affiliate_id?: string | null
   title: string
-  memberName: string
-  memberPhone: string
-  memberEmail: string
+  member_name: string
+  member_phone: string
+  member_email: string
   description: string
   status: HelpDeskStatus
   handlers: CaseHandler[]
   documents: CaseDocument[]
   notes: CaseNote[]
-  createdBy: string
-  createdByName: string
-  createdAt: Date
-  updatedAt: Date
+  created_by: string | null
+  created_by_name: string | null
+  created_at: Date
+  updated_at: Date
 }
 
 // E-Filing Types
 export interface EFile {
   id: string
-  branchId: string
-  folderId: string
-
+  branch_id: string | null
+  folder_id: string | null
   name: string
-  type: string
-  size: number
-
-  uploadedBy: string
-  uploadedAt: Date
-
-  file: File
+  mime_type: string
+  size_bytes: number
+  uploaded_by: string | null
+  uploaded_at: string
+  storage_path: string | null
+  /** Present only while uploading a new file; persisted rows contain storage_path. */
+  file?: File
 }
 
 export interface EFileFolder {
   id: string
-  branchId: string
+  user_id: string
+  branch_id: string | null
+  affiliate_id?: string | null
   name: string
   notes?: string
-  createdAt: Date
+  created_at: Date
 }
 
 export interface Stakeholder {
@@ -394,6 +586,6 @@ export interface ActivityLogEntry {
   user_name?: string
   action: string
   details?: string
-  timestamp: string
+  created_at: string
   ip?: string
 }

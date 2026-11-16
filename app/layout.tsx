@@ -9,7 +9,7 @@ import { initializeDummyData } from '@/lib/dummy-data'
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/constants";
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 // Note: Cannot export metadata in Client Components
 // Moving to separate root layout if needed

@@ -9,12 +9,67 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
-const landingRoutes: Record<string, string> = {
-  sg: '/dashboard',
-  accountant: '/financial',
-  project_coordinator: '/projects',
-  events_manager: '/events',
-  branch_admin: '/branches'
+import { getUserById } from '@/services/auth-services'
+import { getRoleAccesses } from '@/lib/constants'
+import { Role } from '@/lib/types'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+
+async function getUserProfile(userId: string) {
+  const supabase = getSupabaseBrowserClient()
+  if (!supabase) throw new Error('Supabase is not configured.')
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (error) throw error
+  if (!session) return
+  const userProfile = await getUserById(supabase, session, userId)
+
+  return userProfile;
+}
+
+async function getLandingRoute(role?: Role): Promise<string> {
+  if (!role) return '/settings';
+
+  if (role.name.toLowerCase().replaceAll('_', ' ').trim() === 'affiliate secretary') return '/affiliate';
+
+  const accesses = getRoleAccesses(role);
+
+  for (const access of accesses) {
+    switch (access) {
+      case 'Overview':
+        return '/dashboard';
+
+      case 'Financial':
+        return '/financial';
+
+      case 'Branches':
+        return '/branches';
+
+      case 'Projects':
+        return '/projects';
+
+      case 'Events':
+        return '/events';
+
+      case 'Grievances':
+        return '/helpdesk';
+
+      case 'E-Filing':
+        return '/e-filing';
+
+      case 'Settings':
+        return '/settings';
+
+      case 'Users':
+        return '/users';
+
+      case 'Affiliates':
+        return '/members';
+
+      default:
+        continue;
+    }
+  }
+
+  return '/settings';
 }
 
 export default function LoginPage() {
@@ -32,7 +87,9 @@ export default function LoginPage() {
 
     try {
       const authenticatedUser = await login(email, password)
-      router.push(landingRoutes[authenticatedUser.role] ?? '/dashboard')
+      const profile = await getUserProfile(authenticatedUser.id)
+      const route = await getLandingRoute(profile?.role)
+      router.push(route)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -66,7 +123,6 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
-              <p className="text-xs text-muted-foreground">Demo accounts end in @zanzibar.org</p>
             </div>
 
             <div className="space-y-2">
@@ -79,25 +135,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
-              <p className="text-xs text-muted-foreground">Password: demo123</p>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="mt-6 p-3 bg-accent/10 rounded-lg">
-            <p className="text-xs font-semibold mb-2">Demo Accounts:</p>
-            <ul className="text-xs space-y-1 text-muted-foreground">
-              <li>• Secretary General: sg@zanzibar.org</li>
-              <li>• Accountant: accountant@zanzibar.org</li>
-              <li>• Project Coordinator: projectcoordinator@zanzibar.org</li>
-              <li>• Events Manager: eventsmanager@zanzibar.org</li>
-              <li>• Branch Admin: branchadmin@zanzibar.org</li>
-            </ul>
-            <p className="text-xs mt-2 font-semibold">Password: demo123</p>
-          </div>
         </CardContent>
       </Card>
     </div>

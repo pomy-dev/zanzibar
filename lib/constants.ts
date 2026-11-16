@@ -4,17 +4,15 @@ import {
   LayoutDashboard,
   Users,
   UserCog,
-  DollarSign,
   Briefcase,
   Calendar,
   LifeBuoy,
   FileText,
-  Settings,
+  Settings, Currency,
   Building2,
 } from 'lucide-react'
 import { Role, ActivityLogEntry } from '@/lib/types'
-import { createActivityLog } from './utils'
-// import { cn } from ''
+import { createActivityLog } from '@/services/auth-services'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export function cn(...inputs: ClassValue[]) {
@@ -93,9 +91,15 @@ export const menuItems = [
     accesses: ['Overview', 'Branches', 'Users', 'Affiliates', 'Financial', 'Projects', 'Events', 'Grievances', 'E-Filing', 'Settings'],
   },
   {
+    label: 'Affiliate Portal',
+    href: '/affiliate',
+    icon: Building2,
+    accesses: ['Affiliate Portal'],
+  },
+  {
     label: 'Financial',
     href: '/financial',
-    icon: DollarSign,
+    icon: Currency,
     accesses: ['Overview', 'Branches', 'Users', 'Affiliates', 'Financial', 'Projects', 'Events', 'Grievances', 'E-Filing', 'Settings'],
   },
   {
@@ -142,11 +146,45 @@ export const recordActivityLog = async (action: string, details: string, userId?
     userId,
     action,
     details,
-    timestamp: `${Date.now()}`,
+    created_at: `${Date.now()}`,
     ip
   }
 
   // console.log(activityPayload)
 
   await createActivityLog(supabase, session, activityPayload)
+}
+
+export function getDaysLeft(date: Date | string) {
+  const eventDate = new Date(date)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  eventDate.setHours(0, 0, 0, 0)
+  return Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+export function formatDaysLeft(date: Date | string) {
+  const days = getDaysLeft(date)
+  if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`
+  if (days === 0) return 'Today'
+  if (days === 1) return '1 day left'
+  return `${days} days left`
+}
+
+export function getMonthKey(date: Date | string) {
+  const d = new Date(date)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function getMonthLabel(key: string) {
+  const [year, month] = key.split('-')
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleString('default', {
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+export function currentMonthKey() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }

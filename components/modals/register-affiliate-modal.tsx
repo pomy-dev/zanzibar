@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { Affiliate, AffiliateStatus, FinancialStanding } from '@/lib/types'
 
-export type AffiliateDraft = Omit<Affiliate, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory' | 'documents' | 'active'> & { documentNames?: string }
+export type AffiliateDraft = Omit<Affiliate, 'id' | 'created_at' | 'updated_at' | 'status_history' | 'documents' | 'active'> & { documentFiles?: File[] }
 
 interface RegisterAffiliateModalProps {
   open: boolean
@@ -25,20 +25,55 @@ type FormData = {
   correspondenceName: string; correspondenceEmail: string; correspondencePhone: string
   presidentName: string; secretaryName: string; treasurerName: string; lastCongressDate: string; constitutionVersion: string; executiveCommitteeSize: string
   declaredMembership: string; paidUpMembership: string; femaleMembers: string; maleMembers: string; otherMembers: string; ageGroups: string; sectors: string; regions: string; shopStewards: string
-  duesRate: string; paymentHistory: string; financialStanding: FinancialStanding; bankDetails: string; status: AffiliateStatus; notes: string; documentNames: string
+  duesRate: string; paymentHistory: string; financialStanding: FinancialStanding; bankDetails: string; status: AffiliateStatus; notes: string
 }
 
 const emptyForm: FormData = {
   affiliateId: '', officialName: '', acronym: '', registrationNumber: '', affiliationDate: new Date().toISOString().split('T')[0], foundingDate: '', physicalAddress: '', postalAddress: '', phoneNumbers: '', email: '', website: '', socialMedia: '',
   correspondenceName: '', correspondenceEmail: '', correspondencePhone: '', presidentName: '', secretaryName: '', treasurerName: '', lastCongressDate: '', constitutionVersion: '', executiveCommitteeSize: '0',
-  declaredMembership: '0', paidUpMembership: '0', femaleMembers: '0', maleMembers: '0', otherMembers: '0', ageGroups: '', sectors: '', regions: '', shopStewards: '0', duesRate: '', paymentHistory: '', financialStanding: 'Good standing', bankDetails: '', status: 'Provisional', notes: '', documentNames: ''
+  declaredMembership: '0', paidUpMembership: '0', femaleMembers: '0', maleMembers: '0', otherMembers: '0', ageGroups: '', sectors: '', regions: '', shopStewards: '0', duesRate: '', paymentHistory: '', financialStanding: 'Good standing', bankDetails: '', status: 'Provisional', notes: ''
 }
 
 function toForm(affiliate?: Affiliate | null): FormData {
   if (!affiliate) return emptyForm
   const leader = (position: string) => affiliate.leadership.find(item => item.position === position)?.name || ''
   return {
-    affiliateId: affiliate.affiliateId, officialName: affiliate.officialName, acronym: affiliate.acronym, registrationNumber: affiliate.registrationNumber || '', affiliationDate: affiliate.affiliationDate, foundingDate: affiliate.foundingDate || '', physicalAddress: affiliate.physicalAddress, postalAddress: affiliate.postalAddress || '', phoneNumbers: affiliate.phoneNumbers.join(', '), email: affiliate.email || '', website: affiliate.website || '', socialMedia: affiliate.socialMedia || '', correspondenceName: affiliate.correspondenceContact.name, correspondenceEmail: affiliate.correspondenceContact.email || '', correspondencePhone: affiliate.correspondenceContact.phone || '', presidentName: leader('President'), secretaryName: leader('Secretary General'), treasurerName: leader('Treasurer'), lastCongressDate: affiliate.lastCongressDate || '', constitutionVersion: affiliate.constitutionVersion || '', executiveCommitteeSize: String(affiliate.executiveCommitteeSize), declaredMembership: String(affiliate.declaredMembership), paidUpMembership: String(affiliate.paidUpMembership), femaleMembers: String(affiliate.genderBreakdown.female), maleMembers: String(affiliate.genderBreakdown.male), otherMembers: String(affiliate.genderBreakdown.other), ageGroups: affiliate.ageGroups, sectors: affiliate.sectors.join(', '), regions: affiliate.regions.join(', '), shopStewards: String(affiliate.shopStewards), duesRate: affiliate.duesRate || '', paymentHistory: affiliate.paymentHistory || '', financialStanding: affiliate.financialStanding, bankDetails: affiliate.bankDetails || '', status: affiliate.status, notes: affiliate.notes || '', documentNames: affiliate.documents.map(document => document.name).join(', ')
+    affiliateId: affiliate.affiliate_id,
+    officialName: affiliate.official_name,
+    acronym: affiliate.acronym,
+    registrationNumber: affiliate.registration_number || '',
+    affiliationDate: affiliate.affiliation_date,
+    foundingDate: affiliate.founding_date || '',
+    physicalAddress: affiliate.physical_address,
+    postalAddress: affiliate.postal_address || '',
+    phoneNumbers: affiliate.phone_numbers.join(', '),
+    email: affiliate.email || '',
+    website: affiliate.website || '',
+    socialMedia: affiliate.social_media || '',
+    correspondenceName: affiliate.correspondence_contact.name,
+    correspondenceEmail: affiliate.correspondence_contact.email || '',
+    correspondencePhone: affiliate.correspondence_contact.phone || '',
+    presidentName: leader('President'),
+    secretaryName: leader('Secretary General'),
+    treasurerName: leader('Treasurer'),
+    lastCongressDate: affiliate.last_congress_date || '',
+    constitutionVersion: affiliate.constitution_version || '',
+    executiveCommitteeSize: String(affiliate.executive_committee_size),
+    declaredMembership: String(affiliate.declared_membership),
+    paidUpMembership: String(affiliate.paid_up_membership),
+    femaleMembers: String(affiliate.gender_breakdown.female),
+    maleMembers: String(affiliate.gender_breakdown.male),
+    otherMembers: String(affiliate.gender_breakdown.other),
+    ageGroups: affiliate.age_groups,
+    sectors: affiliate.sectors.join(', '),
+    regions: affiliate.regions.join(', '),
+    shopStewards: String(affiliate.shop_stewards),
+    duesRate: affiliate.dues_rate || '',
+    paymentHistory: affiliate.payment_history || '',
+    financialStanding: affiliate.financial_standing,
+    bankDetails: affiliate.bank_details || '',
+    status: affiliate.status,
+    notes: affiliate.notes || ''
   }
 }
 
@@ -47,16 +82,20 @@ const numberValue = (value: string) => Number.parseInt(value, 10) || 0
 
 export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAffiliate, isLoading }: RegisterAffiliateModalProps) {
   const [formData, setFormData] = useState<FormData>(emptyForm)
+  const [documentFiles, setDocumentFiles] = useState<File[]>([])
 
   useEffect(() => {
-    if (open) setFormData(toForm(initialAffiliate))
+    if (open) {
+      setFormData(toForm(initialAffiliate))
+      setDocumentFiles([])
+    }
   }, [open, initialAffiliate])
 
   const update = (key: keyof FormData, value: string) => setFormData(previous => ({ ...previous, [key]: value }))
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!formData.officialName.trim() || !formData.acronym.trim() || !formData.physicalAddress.trim() || !formData.correspondenceName.trim()) {
+    if (!formData.officialName.trim() || !formData.acronym.trim() || !formData.physicalAddress.trim()) {
       alert('Please complete the official name, acronym, physical address, and correspondence contact.')
       return
     }
@@ -68,10 +107,46 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
     ].filter(item => item.name.trim())
 
     onSubmit({
-      affiliateId: formData.affiliateId.trim() || `TUC-AFF-${Date.now().toString().slice(-4)}`,
-      officialName: formData.officialName.trim(), acronym: formData.acronym.trim().toUpperCase(), registrationNumber: formData.registrationNumber.trim(), affiliationDate: formData.affiliationDate, foundingDate: formData.foundingDate, physicalAddress: formData.physicalAddress.trim(), postalAddress: formData.postalAddress.trim(), phoneNumbers: splitList(formData.phoneNumbers), email: formData.email.trim(), website: formData.website.trim(), socialMedia: formData.socialMedia.trim(), correspondenceContact: { name: formData.correspondenceName.trim(), email: formData.correspondenceEmail.trim(), phone: formData.correspondencePhone.trim() }, leadership, lastCongressDate: formData.lastCongressDate, constitutionVersion: formData.constitutionVersion.trim(), executiveCommitteeSize: numberValue(formData.executiveCommitteeSize), declaredMembership: numberValue(formData.declaredMembership), paidUpMembership: numberValue(formData.paidUpMembership), genderBreakdown: { female: numberValue(formData.femaleMembers), male: numberValue(formData.maleMembers), other: numberValue(formData.otherMembers) }, ageGroups: formData.ageGroups.trim(), sectors: splitList(formData.sectors), regions: splitList(formData.regions), shopStewards: numberValue(formData.shopStewards), duesRate: formData.duesRate.trim(), paymentHistory: formData.paymentHistory.trim(), financialStanding: formData.financialStanding, bankDetails: formData.bankDetails.trim(), status: formData.status, notes: formData.notes.trim(), documentNames: formData.documentNames.trim()
+      affiliate_id: `TUC-AFF-${Date.now().toString().slice(-4)}`,
+      official_name: formData.officialName.trim(),
+      acronym: formData.acronym.trim().toUpperCase(),
+      registration_number: formData.registrationNumber.trim(),
+      affiliation_date: formData.affiliationDate,
+      founding_date: formData.foundingDate,
+      physical_address: formData.physicalAddress.trim(),
+      postal_address: formData.postalAddress.trim(),
+      phone_numbers: splitList(formData.phoneNumbers),
+      email: formData.email.trim(),
+      website: formData.website.trim(),
+      social_media: formData.socialMedia.trim(),
+      correspondence_contact: {
+        name: formData.correspondenceName.trim(),
+        email: formData.correspondenceEmail.trim(),
+        phone: formData.correspondencePhone.trim()
+      },
+      leadership,
+      last_congress_date: formData.lastCongressDate,
+      constitution_version: formData.constitutionVersion.trim(),
+      executive_committee_size: numberValue(formData.executiveCommitteeSize),
+      declared_membership: numberValue(formData.declaredMembership),
+      paid_up_membership: numberValue(formData.paidUpMembership),
+      gender_breakdown: {
+        female: numberValue(formData.femaleMembers),
+        male: numberValue(formData.maleMembers), other: numberValue(formData.otherMembers)
+      },
+      age_groups: formData.ageGroups.trim(),
+      sectors: splitList(formData.sectors),
+      regions: splitList(formData.regions),
+      shop_stewards: numberValue(formData.shopStewards),
+      dues_rate: formData.duesRate.trim(),
+      payment_history: formData.paymentHistory.trim(),
+      financial_standing: "Suspended",
+      bank_details: formData.bankDetails.trim(),
+      status: "Provisional",
+      notes: formData.notes.trim(),
+      documentFiles
     })
-    onOpenChange(false)
+    !isLoading && onOpenChange(false)
   }
 
   const field = (key: keyof FormData, label: string, props: ComponentProps<typeof Input> = {}) => (
@@ -93,10 +168,9 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
           <section className="space-y-4">
             <div>
               <h3 className="font-semibold text-foreground">Identification</h3>
-              <p className="text-sm text-muted-foreground">The master record for a TUCOSWA affiliate.</p>
+              <p className="text-sm text-muted-foreground">The master record for a ZATUC affiliate.</p>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              {field('affiliateId', 'Unique Affiliate ID', { placeholder: 'Generated if blank' })}
               {field('officialName', 'Official Name *', { required: true, className: 'md:col-span-2' })}
               {field('acronym', 'Acronym *', { required: true })}
               {field('registrationNumber', 'Incorporation Number')}
@@ -114,14 +188,14 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
               {field('website', 'Website')}
               {field('socialMedia', 'Social Media Handles')}
             </div>
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
+            {/* <div className="rounded-xl border border-border bg-muted/30 p-4">
               <p className="mb-3 text-sm font-semibold">Official correspondence contact</p>
               <div className="grid gap-4 md:grid-cols-3">
                 {field('correspondenceName', 'Name *', { required: true })}
                 {field('correspondenceEmail', 'Email', { type: 'email' })}
                 {field('correspondencePhone', 'Phone', { type: 'tel' })}
               </div>
-            </div>
+            </div> */}
           </section>
           <section className="space-y-4">
             <h3 className="font-semibold text-foreground">Leadership & governance</h3>
@@ -137,7 +211,7 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
           <section className="space-y-4">
             <h3 className="font-semibold text-foreground">Membership & sectors</h3>
             <div className="grid gap-4 md:grid-cols-4">
-              {field('declaredMembership', 'Declared Membership', { type: 'number', min: 0 })}
+              {field('declaredMembership', '∑ Membership', { type: 'number', min: 0 })}
               {field('paidUpMembership', 'Paid-up Membership', { type: 'number', min: 0 })}
               {field('femaleMembers', 'Women Members', { type: 'number', min: 0 })}
               {field('maleMembers', 'Men Members', { type: 'number', min: 0 })}
@@ -154,26 +228,25 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
               {field('duesRate', 'Subscription')}
               {field('paymentHistory', 'Payment History', { placeholder: 'Current through September 2026' })}
               {field('bankDetails', 'Bank details / payment reference')}
-              {field('documentNames', 'Document Register', { placeholder: 'Constitution.pdf, registration certificate.pdf' })}
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="financialStanding">Financial standing</Label>
-                <select id="financialStanding" value={formData.financialStanding} onChange={event => update('financialStanding', event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option>Good standing</option>
-                  <option>Arrears</option>
-                  <option>Suspended</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="status">Affiliation status</Label>
-                <select id="status" value={formData.status} onChange={event => update('status', event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option>Provisional</option>
-                  <option>Active</option>
-                  <option>Suspended</option>
-                  <option>Expelled</option>
-                  <option>Withdrawn</option>
-                </select>
+                <Label htmlFor="documentFiles">Document Register</Label>
+                <Input
+                  key={open ? 'document-files-open' : 'document-files-closed'}
+                  id="documentFiles"
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  disabled={isLoading}
+                  onChange={event => setDocumentFiles(Array.from(event.target.files ?? []))}
+                />
+                {initialAffiliate?.documents.length ? (
+                  <p className="text-xs text-muted-foreground">
+                    Existing documents: {initialAffiliate.documents.map(document => document.name).join(', ')}
+                  </p>
+                ) : null}
+                {documentFiles.length > 0 && (
+                  <p className="text-xs text-muted-foreground">Selected: {documentFiles.map(file => file.name).join(', ')}</p>
+                )}
               </div>
             </div>
           </section>
