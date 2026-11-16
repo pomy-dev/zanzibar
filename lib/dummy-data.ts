@@ -113,9 +113,16 @@ export const dummyAffiliates: Affiliate[] = [
     documents: [{ id: 'doc_1', name: 'SNAT Constitution 2023.pdf', category: 'Constitution', version: '2023', uploadedAt: new Date('2023-09-01') }], notes: 'Largest education affiliate.', active: true, createdAt: new Date('2012-01-15'), updatedAt: new Date('2026-09-30')
   },
   {
-    id: 'affiliate_2', affiliateId: 'TUC-AFF-002', officialName: 'Swaziland Transport, Communication and Allied Workers Union', acronym: 'SWATCAWU',
-    registrationNumber: 'REG-1998-044', affiliationDate: '2012-01-15', foundingDate: '1998-06-20', physicalAddress: 'Manzini Industrial Area', postalAddress: 'P.O. Box 334, Manzini', phoneNumbers: ['+268 2505 2211'], email: 'office@swatcawu.org.sz', website: '', socialMedia: '@SWATCAWU',
-    correspondenceContact: { name: 'Mduduzi Gina', email: 'office@swatcawu.org.sz', phone: '+268 7800 2244' }, leadership: [{ position: 'President', name: 'Sibusiso Shongwe', termOfOffice: '2024–2027' }, { position: 'Secretary General', name: 'Mduduzi Gina', termOfOffice: '2024–2027' }],
+    id: 'affiliate_2', affiliateId: 'TUC-AFF-002', 
+    officialName: 'Swaziland Transport, Communication and Allied Workers Union', 
+    acronym: 'SWATCAWU', registrationNumber: 'REG-1998-044', 
+    affiliationDate: '2012-01-15', foundingDate: '1998-06-20', 
+    physicalAddress: 'Manzini Industrial Area', postalAddress: 'P.O. Box 334, Manzini', 
+    phoneNumbers: ['+268 2505 2211'], email: 'office@swatcawu.org.sz', 
+    website: '', socialMedia: '@SWATCAWU',
+    correspondenceContact: { name: 'Mduduzi Gina', email: 'office@swatcawu.org.sz', 
+      phone: '+268 7800 2244' }, 
+      leadership: [{ position: 'President', name: 'Sibusiso Shongwe', termOfOffice: '2024–2027' }, { position: 'Secretary General', name: 'Mduduzi Gina', termOfOffice: '2024–2027' }],
     lastCongressDate: '2024-05-10', constitutionVersion: '2024 revision', executiveCommitteeSize: 9, declaredMembership: 3100, paidUpMembership: 2400, genderBreakdown: { female: 620, male: 2400, other: 80 }, ageGroups: '18–30: 410; 31–50: 1,980; 51+: 710', sectors: ['Transport', 'Communications'], regions: ['Manzini', 'Hhohho'], shopStewards: 66, duesRate: 'E50 per month', paymentHistory: 'Two months outstanding', financialStanding: 'Arrears' as FinancialStanding, bankDetails: 'Pending verification', status: 'Provisional' as AffiliateStatus, statusHistory: [{ status: 'Provisional' as AffiliateStatus, reason: 'Awaiting updated financial statements', changedAt: new Date('2026-04-01'), changedBy: 'user_1' }], documents: [], notes: 'Follow up on audited statements and dues reconciliation.', active: true, createdAt: new Date('2012-01-15'), updatedAt: new Date('2026-10-01')
   },
   {

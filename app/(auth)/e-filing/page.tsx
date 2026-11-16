@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth-context'
-import { Role, EFileFolder, EFile, Permission, AppUser } from '@/lib/types'
+import { Role, EFileFolder, EFile, Permission, AppUser, Branch } from '@/lib/types'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { canSee, recordActivityLog } from '@/lib/constants'
 import { useUserIP } from '@/lib/userUserIp'
@@ -20,6 +20,7 @@ import {
   createEFileFolder, getAllEFileFolders, deleteEFileFolder,
   deleteEFile, getAllEFiles, getEFileSignedUrl, updateEFile, uploadEFile,
 } from '@/services/efile-service'
+import { getAllBranches } from '@/services/branch-service'
 import {
   Plus, Folder, File, FileArchive, FileCode, FileImage, FileText, FileSpreadsheet, Trash2,
   FolderPlus, Download, AlertCircle, Move, Search, Filter, X
@@ -44,6 +45,8 @@ export default function EFilingPage() {
   const [users, setUsers] = useState<AppUser[]>([])
   const [permissions, setPermissions] = useState<Permission[]>([])
 
+  const [branches, setBranches] = useState<Branch[]>([])
+
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>('all')
   const [filterFolderName, setFilterFolderName] = useState('')
@@ -55,7 +58,7 @@ export default function EFilingPage() {
 
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const isSecretaryGeneral = user?.role === SECRETARY_GENERAL_ROLE
+  const isSecretaryGeneral = user?.role.toLowerCase() === "SECRETARY GENERAL".toLowerCase()
 
   // Load roles & permissions
   useEffect(() => {
@@ -108,6 +111,9 @@ export default function EFilingPage() {
     })
     void loadUsersAndRoles().catch((error: unknown) => {
       console.error('Unable to load users and roles:', error)
+    })
+    void fetchBranches().catch((error: unknown) => {
+      console.error('Unable to load branches:', error)
     })
 
     return () => {
@@ -165,6 +171,25 @@ export default function EFilingPage() {
     void load()
   }, [selectedFolder, user?.branchId])
 
+  const fetchBranches = async () => {
+    try {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Supabase is not configured.')
+      const branches = await getAllBranches(supabase);
+      const normalized = branches.map((b: any) => ({
+        ...b,
+        name: b.branch_name,
+        isActive: b.is_active,
+        contactEmail: b.contact_email,
+        adminId: b.admin_id ?? b.adminId,
+        createdAt: b.created_at ? new Date(b.created_at) : new Date(),
+      }))
+      setBranches(normalized)
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    }
+  }
+
   // Visibility helper
   const canViewFolder = (folder: EFileFolder) => {
     if (isSecretaryGeneral) return true
@@ -208,9 +233,9 @@ export default function EFilingPage() {
 
   // Unique branches / affiliates for filters (derived from data)
   const branchOptions = useMemo(() => {
-    const set = new Set(folders.map((f) => f.branch_id).filter(Boolean))
+    const set = new Set(branches.map((b) => b.id).filter(Boolean))
     return Array.from(set)
-  }, [folders])
+  }, [branches])
 
   const affiliateOptions = useMemo(() => {
     const set = new Set(
@@ -523,11 +548,14 @@ export default function EFilingPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All branches</SelectItem>
-                  {branchOptions.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
+                  {branchOptions.map((branchId) => {
+                    const branch = branches.find((br) => br.id === branchId);
+                    return branch ? (
+                      <SelectItem key={branchId} value={branchId}>
+                        {branch.name}
+                      </SelectItem>
+                    ) : null;
+                  })}
                 </SelectContent>
               </Select>
             </div>

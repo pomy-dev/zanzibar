@@ -357,7 +357,7 @@ export interface ProjectTeamMember {
 }
 
 export interface ProjectResource {
-  id: string
+  id?: string
   project_id: string
   name: string
   quantity: number

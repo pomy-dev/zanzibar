@@ -307,7 +307,7 @@ export async function createProjectResource(
   const { data, error } = await supabase
     .from("project_resources")
     .insert(payload)
-    .select("*")
+    .select()
     .single();
 
   if (error) throw new Error(error.message);

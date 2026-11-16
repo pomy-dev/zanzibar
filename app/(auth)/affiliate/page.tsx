@@ -118,77 +118,12 @@ type SupportCase = { id: string; title: string; status: string; updated: string 
 
 const AffiliateCanManageContext = createContext(false)
 
-const initialAffiliate: AffiliateProfile = {
-  name: 'Eswatini National Association of Teachers',
-  acronym: 'SNAT',
-  affiliateCode: 'TUC-AFF-001',
-  status: 'Active',
-  standing: 'Good standing',
-  updated: '6 November 2026',
-  contact: 'Lindiwe Dlamini · Secretary General',
-  email: 'office@snat.org.sz',
-  phone: '+268 2404 1122',
-  address: 'Mbabane, Hhohho Region',
-}
-
-const initialMembership: MembershipData = {
-  declared: 4820,
-  paid: 4315,
-  women: 2910,
-  men: 1840,
-  other: 70,
-  stewards: 84,
-  executiveCommittee: 11,
-  regions: 'Hhohho, Manzini, Lubombo, Shiselweni',
-  sectors: 'Education, public service',
-  lastCongress: '12 September 2025',
-  constitutionVersion: '2023 revision',
-}
-
-const initialDueRows: DueRow[] = [
-  { id: 'du-1', date: '4 Nov 2026', reference: 'TUC-SNAT-26-104', amount: 108750, status: 'Received' },
-  { id: 'du-2', date: '3 Oct 2026', reference: 'TUC-SNAT-26-103', amount: 108750, status: 'Received' },
-  { id: 'du-3', date: '5 Sep 2026', reference: 'TUC-SNAT-26-102', amount: 108750, status: 'Received' },
-  { id: 'du-4', date: '6 Aug 2026', reference: 'TUC-SNAT-26-101', amount: 108750, status: 'Received' },
-]
-
-const initialProjects: Project[] = [
-  { id: 'pr-1', title: 'Teachers’ Workplace Rights Programme', status: 'In progress', progress: 68, lead: 'SNAT + ZATUC' },
-  { id: 'pr-2', title: 'Young Workers Leadership Network', status: 'Planning', progress: 22, lead: 'SNAT' },
-]
-
-const initialEvents: EventItem[] = [
-  { id: 'ev-1', date: '18 Nov', title: 'Affiliate Secretaries Forum', place: 'ZATUC House, Mbabane', kind: 'Meeting' },
-  { id: 'ev-2', date: '02 Dec', title: 'Annual Labour Conference', place: 'Ezulwini Convention Centre', kind: 'Conference' },
-  { id: 'ev-3', date: '10 Dec', title: 'Membership Data Clinic', place: 'Online', kind: 'Workshop' },
-]
-
-const initialDocuments: DocumentItem[] = [
-  { id: 'doc-1', name: 'SNAT Constitution', type: 'Constitution', date: '12 Sep 2026', archived: false, caption: '' },
-  { id: 'doc-2', name: '2026 Membership Return', type: 'Membership', date: '28 Oct 2026', archived: false, caption: '' },
-  { id: 'doc-3', name: 'Audited Financial Statements', type: 'Financial', date: '14 Aug 2026', archived: false, caption: '' },
-]
-
-const initialCases: SupportCase[] = [
-  { id: 'HD-2026-0148', title: 'Collective bargaining support', status: 'In progress', updated: '5 Nov' },
-  { id: 'HD-2026-0122', title: 'Workplace safety referral', status: 'Awaiting update', updated: '29 Oct' },
-]
-
 const money = (amount: number) => `E${amount.toLocaleString('en-SZ')}`
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })
 }
 
 function sortDocsByDateDesc(items: DocumentItem[]) {
@@ -362,15 +297,15 @@ export function AffiliateDashboardPage() {
   const [users, setUsers] = useState<AppUser[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [section, setSection] = useState('Overview')
-  const [affiliate, setAffiliate] = useState(initialAffiliate)
+  const [affiliate, setAffiliate] = useState<AffiliateProfile>()
   const [extraDetails, setExtraDetails] = useState<AffiliateExtraDetails>({ registrationNumber: '', affiliationDate: '', foundingDate: '', postalAddress: '', website: '', socialMedia: '', correspondenceEmail: '', correspondencePhone: '', bankDetails: '', ageGroups: '' })
   const [statusHistory, setStatusHistory] = useState<any[]>([])
-  const [membership, setMembership] = useState(initialMembership)
-  const [dueRows, setDueRows] = useState(initialDueRows)
-  const [projects, setProjects] = useState(initialProjects)
-  const [events, setEvents] = useState(initialEvents)
-  const [documents, setDocuments] = useState(initialDocuments)
-  const [cases, setCases] = useState(initialCases)
+  const [membership, setMembership] = useState<MembershipData>()
+  const [dueRows, setDueRows] = useState<DueRow[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [events, setEvents] = useState<EventItem[]>([])
+  const [documents, setDocuments] = useState<DocumentItem[]>([])
+  const [cases, setCases] = useState<SupportCase[]>([])
   const [leadership, setLeadership] = useState<{ position: string; name: string; email?: string; phone?: string }[]>([])
   const [isLoadingAffiliate, setIsLoadingAffiliate] = useState(true)
   const [currentAffiliate, setCurrentAffiliate] = useState<{ id: string; name: string } | null>(null)
@@ -432,7 +367,7 @@ export function AffiliateDashboardPage() {
       const supabase = getSupabaseBrowserClient()
       if (!supabase) throw new Error('Supabase is not configured.')
 
-      if (!user?.affiliateId) {
+      if (!targetAffiliateId) {
         if (!cancelled) {
           setCurrentAffiliate(null)
           setCases([])
@@ -447,15 +382,15 @@ export function AffiliateDashboardPage() {
           supabase
             .from('affiliates')
             .select('*')
-            .eq('id', user?.affiliateId)
+            .eq('id', targetAffiliateId)
             .single(),
           getHelpdeskCases(supabase),
-          getAffiliateDocuments(supabase, user?.affiliateId),
-          getAffiliatePayments(supabase, user?.affiliateId),
-          getAffiliateLeadership(supabase, user?.affiliateId),
-          getAffiliateStatusHistory(supabase, user?.affiliateId),
-          supabase.from('projects').select('*').eq('affiliate_id', user?.affiliateId).order('created_at', { ascending: false }),
-          supabase.from('events').select('*').eq('affiliate_id', user?.affiliateId).order('event_date', { ascending: true }),
+          getAffiliateDocuments(supabase, targetAffiliateId),
+          getAffiliatePayments(supabase, targetAffiliateId),
+          getAffiliateLeadership(supabase, targetAffiliateId),
+          getAffiliateStatusHistory(supabase, targetAffiliateId),
+          supabase.from('projects').select('*').eq('affiliate_id', targetAffiliateId).order('created_at', { ascending: false }),
+          supabase.from('events').select('*').eq('affiliate_id', targetAffiliateId).order('event_date', { ascending: true }),
         ])
       if (affiliateError) throw affiliateError
       if (projectsResult.error) throw projectsResult.error
@@ -518,8 +453,9 @@ export function AffiliateDashboardPage() {
       })))
 
       setCurrentAffiliate({ id: affiliateRow.id, name: affiliateRow.official_name })
+
       setCases(loadedCases
-        .filter((item) => item.affiliate_id === user?.affiliateId)
+        ?.filter((item) => item.affiliate_id === targetAffiliateId)
         .map((item) => ({
           id: item.id,
           title: item.title,
@@ -540,17 +476,16 @@ export function AffiliateDashboardPage() {
     void loadAllSystemUsers().catch((error: unknown) => {
       console.error('Unable to load users:', error)
     })
-    console.log(user)
     return () => { cancelled = true }
   }, [user, targetAffiliateId])
 
   const sections = ['Overview', 'About', 'Membership', 'Dues & finance', 'Programmes', 'Documents', 'Support']
   const duesChart = dueRows.slice(0, 4).reverse().map(row => ({ month: new Date(row.date).toLocaleDateString('en', { month: 'short' }), amount: row.amount }))
   const maxDues = Math.max(1, ...duesChart.map((item) => item.amount))
-  const paidUpPct = membership.declared
+  const paidUpPct = membership?.declared
     ? Math.round((membership.paid / membership.declared) * 100)
     : 0
-  const gap = Math.max(0, membership.declared - membership.paid)
+  const gap = Math.max(0, membership?.declared! - membership?.paid!)
   const totalDues2026 = dueRows.reduce((sum, row) => sum + row.amount, 0)
 
   const touchUpdated = useCallback(() => {
@@ -559,7 +494,7 @@ export function AffiliateDashboardPage() {
       month: 'long',
       year: 'numeric',
     })
-    setAffiliate((prev) => ({ ...prev, updated: stamp }))
+    setAffiliate((prev) => ({ ...prev!, updated: stamp }))
     setSavingBanner('Changes saved to your affiliate workspace')
     window.setTimeout(() => setSavingBanner(null), 2500)
   }, [])
@@ -589,7 +524,7 @@ export function AffiliateDashboardPage() {
         const { data: history } = await supabase.from('affiliate_status_history').select('*').eq('affiliate_id', currentAffiliate.id).order('changed_at', { ascending: false })
         setStatusHistory(history ?? [])
       }
-      setAffiliate((prev) => ({ ...prev, [key]: value }))
+      setAffiliate((prev) => ({ ...prev!, [key]: value }))
       touchUpdated()
     },
     [canManage, currentAffiliate, touchUpdated],
@@ -616,7 +551,7 @@ export function AffiliateDashboardPage() {
       if (key === 'regions' || key === 'sectors') patch[key] = String(value).split(',').map(item => item.trim()).filter(Boolean)
       const { error } = await supabase.from('affiliates').update(patch).eq('id', currentAffiliate.id)
       if (error) throw error
-      setMembership((prev) => ({ ...prev, [key]: value }))
+      setMembership((prev) => ({ ...prev!, [key]: value }))
       touchUpdated()
     },
     [canManage, currentAffiliate, touchUpdated],
@@ -770,12 +705,13 @@ export function AffiliateDashboardPage() {
     if (!canManage || !currentAffiliate) return
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
-    void supabase.from('projects').insert({ 
-      affiliate_id: currentAffiliate.id, 
-      title: programmeForm.title.trim(), 
-      status: programmeForm.status.toLowerCase().replaceAll(' ', '_'), 
-      progress: Math.min(100, Number(programmeForm.progress) || 0), 
-      coordinator: programmeForm.lead, archived: false }).select('*').single()
+    void supabase.from('projects').insert({
+      affiliate_id: currentAffiliate.id,
+      title: programmeForm.title.trim(),
+      status: programmeForm.status.toLowerCase().replaceAll(' ', '_'),
+      progress: Math.min(100, Number(programmeForm.progress) || 0),
+      coordinator: programmeForm.lead, archived: false
+    }).select('*').single()
       .then(({ data, error }) => {
         if (error) { toast.error(error.message); return }
         setProjects(prev => [{ id: data.id, title: data.title, status: data.status.replaceAll('_', ' '), progress: data.progress, lead: data.coordinator, archived: data.archived }, ...prev])
@@ -950,23 +886,23 @@ export function AffiliateDashboardPage() {
 
   const exportAffiliateReport = () => {
     const report = [
-      `ZATUC affiliate report: ${affiliate.name} (${affiliate.acronym})`,
-      `Affiliate ID: ${affiliate.affiliateCode}`, `Status: ${affiliate.status}`,
-      `Financial standing: ${affiliate.standing}`, `Email: ${affiliate.email || 'Not recorded'}`,
-      `Phone: ${affiliate.phone || 'Not recorded'}`, `Address: ${affiliate.address || 'Not recorded'}`,
+      `ZATUC affiliate report: ${affiliate!.name} (${affiliate!.acronym})`,
+      `Affiliate ID: ${affiliate!.affiliateCode}`, `Status: ${affiliate!.status}`,
+      `Financial standing: ${affiliate!.standing}`, `Email: ${affiliate!.email || 'Not recorded'}`,
+      `Phone: ${affiliate!.phone || 'Not recorded'}`, `Address: ${affiliate!.address || 'Not recorded'}`,
       `Registration number: ${extraDetails.registrationNumber || 'Not recorded'}`,
       `Affiliation date: ${extraDetails.affiliationDate || 'Not recorded'}`,
       `Founding date: ${extraDetails.foundingDate || 'Not recorded'}`,
-      `Declared membership: ${membership.declared}`, `Paid-up membership: ${membership.paid}`,
-      `Women / men / other: ${membership.women} / ${membership.men} / ${membership.other}`,
-      `Shop stewards: ${membership.stewards}`, `Regions: ${membership.regions || 'Not recorded'}`,
-      `Sectors: ${membership.sectors || 'Not recorded'}`, `Documents: ${documents.length}`,
+      `Declared membership: ${membership?.declared}`, `Paid-up membership: ${membership?.paid}`,
+      `Women / men / other: ${membership?.women} / ${membership?.men} / ${membership?.other}`,
+      `Shop stewards: ${membership?.stewards}`, `Regions: ${membership?.regions || 'Not recorded'}`,
+      `Sectors: ${membership?.sectors || 'Not recorded'}`, `Documents: ${documents.length}`,
       `Leadership: ${leadership.map(person => `${person.position}: ${person.name}`).join('; ') || 'Not recorded'}`,
       `Payments recorded: ${dueRows.length}`, `Generated: ${new Date().toLocaleString()}`,
     ].join('\n')
     const link = document.createElement('a')
     link.href = URL.createObjectURL(new Blob([report], { type: 'text/plain' }))
-    link.download = `${affiliate.acronym.toLowerCase()}-affiliate-report.txt`
+    link.download = `${affiliate!.acronym.toLowerCase()}-affiliate-report.txt`
     link.click()
     URL.revokeObjectURL(link.href)
   }
@@ -992,7 +928,7 @@ export function AffiliateDashboardPage() {
 
   if (!targetAffiliateId) return <div className="p-8"><Card><CardContent className="pt-6">Select an affiliate from the affiliate register to view its profile.</CardContent></Card></div>
   if (isLoadingAffiliate) return <div className="min-h-screen p-8 text-sm text-muted-foreground">Loading affiliate record…</div>
-  if (loadError || !currentAffiliate) return <div className="p-8"><Card><CardContent className="pt-6 text-destructive">{loadError ?? 'Affiliate record not found.'}</CardContent></Card></div>
+  if (loadError || !currentAffiliate) return (<div className="p-8"><Card><CardContent className="pt-6 text-destructive">{loadError ?? 'Affiliate record not found.'}</CardContent></Card></div>)
 
   return (
     <AffiliateCanManageContext.Provider value={canManage}>
@@ -1002,7 +938,10 @@ export function AffiliateDashboardPage() {
             <div>
               <p className="font-semibold">ZATUC Affiliate Workspace</p>
               <p className="text-xs text-muted-foreground">Signed in as {user.name}</p>
-            </div><Button variant="outline" onClick={async () => { await logout(); router.replace('/login') }}>Log out</Button></div>}
+            </div>
+            <Button variant="outline" onClick={async () => { await logout(); router.replace('/login') }}>Log out</Button>
+          </div>
+        }
         {loadError && <div className="mx-auto max-w-7xl px-6 pt-5"><p role="alert" className="text-sm text-destructive">{loadError}</p></div>}
 
         <div className="mx-auto flex max-w-7xl justify-between gap-2 px-4 pt-4 md:px-7">
@@ -1027,12 +966,12 @@ export function AffiliateDashboardPage() {
                     <ShieldCheck className="h-4 w-4" />
                     Affiliate workspace
                     <span className="text-white/40">·</span>
-                    <span className="font-mono text-xs text-white/80">{affiliate.affiliateCode}</span>
+                    <span className="font-mono text-xs text-white/80">{affiliate!.affiliateCode}</span>
                   </div>
 
                   <EditableField
                     label="Official name"
-                    value={affiliate.name}
+                    value={affiliate!.name}
                     onSave={(v) => updateAffiliate('name', v)}
                     className="border-white/15 bg-white/[0.06] text-white"
                     displayClassName="text-xl font-semibold tracking-tight md:text-2xl text-white"
@@ -1041,14 +980,14 @@ export function AffiliateDashboardPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Acronym"
-                      value={affiliate.acronym}
+                      value={affiliate!.acronym}
                       onSave={(v) => updateAffiliate('acronym', v)}
                       className="border-white/15 bg-white/[0.06]"
                       displayClassName="text-white"
                     />
                     <EditableField
                       label="Status"
-                      value={affiliate.status}
+                      value={affiliate!.status}
                       onSave={(v) => updateAffiliate('status', v)}
                       className="border-white/15 bg-white/[0.06]"
                       displayClassName="text-white"
@@ -1058,10 +997,10 @@ export function AffiliateDashboardPage() {
                   <div className="flex flex-wrap gap-2">
                     <Badge className="border-emerald-300/30 bg-emerald-300/15 text-emerald-100 hover:bg-emerald-300/15">
                       <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                      {affiliate.status}
+                      {affiliate!.status}
                     </Badge>
                     <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
-                      {affiliate.standing}
+                      {affiliate!.standing}
                     </Badge>
                   </div>
                 </div>
@@ -1070,14 +1009,14 @@ export function AffiliateDashboardPage() {
                   <p className="text-xs uppercase tracking-wide text-white/55">Affiliation contact</p>
                   <EditableField
                     label="Primary contact"
-                    value={affiliate.contact}
+                    value={(isAffiliateSecretary && user?.affiliateId) ? user?.email : affiliate!.contact}
                     onSave={(v) => updateAffiliate('contact', v)}
                     className="border-white/10 bg-transparent p-0 shadow-none"
                     displayClassName="text-white"
                   />
                   <EditableField
                     label="Email"
-                    value={affiliate.email}
+                    value={affiliate!.email}
                     type="email"
                     onSave={(v) => updateAffiliate('email', v)}
                     className="border-white/10 bg-transparent p-0 shadow-none"
@@ -1085,7 +1024,7 @@ export function AffiliateDashboardPage() {
                   />
                   <EditableField
                     label="Phone"
-                    value={affiliate.phone}
+                    value={affiliate!.phone}
                     type="tel"
                     onSave={(v) => updateAffiliate('phone', v)}
                     className="border-white/10 bg-transparent p-0 shadow-none"
@@ -1093,7 +1032,7 @@ export function AffiliateDashboardPage() {
                   />
                   <EditableField
                     label="Address"
-                    value={affiliate.address}
+                    value={affiliate!.address}
                     onSave={(v) => updateAffiliate('address', v)}
                     className="border-white/10 bg-transparent p-0 shadow-none"
                     displayClassName="text-white/90"
@@ -1127,8 +1066,8 @@ export function AffiliateDashboardPage() {
                   <Metric
                     icon={Users}
                     label="Declared members"
-                    value={membership.declared.toLocaleString()}
-                    helper={`${membership.paid.toLocaleString()} paid-up`}
+                    value={membership!.declared.toLocaleString()}
+                    helper={`${membership?.paid.toLocaleString()} paid-up`}
                     detail={`${paidUpPct}% paid-up`}
                   />
                   <Metric
@@ -1172,7 +1111,7 @@ export function AffiliateDashboardPage() {
                         <div className="mb-2 flex justify-between text-sm">
                           <span className="text-muted-foreground">Paid-up membership</span>
                           <span className="font-medium">
-                            {membership.paid.toLocaleString()} / {membership.declared.toLocaleString()}
+                            {membership?.paid.toLocaleString()} / {membership?.declared.toLocaleString()}
                           </span>
                         </div>
                         <div className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -1186,10 +1125,10 @@ export function AffiliateDashboardPage() {
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <MiniStat label="Women" value={membership.women.toLocaleString()} />
-                        <MiniStat label="Men" value={membership.men.toLocaleString()} />
-                        <MiniStat label="Other" value={membership.other.toLocaleString()} />
-                        <MiniStat label="Shop stewards" value={String(membership.stewards)} />
+                        <MiniStat label="Women" value={membership!.women.toLocaleString()} />
+                        <MiniStat label="Men" value={membership!.men.toLocaleString()} />
+                        <MiniStat label="Other" value={membership!.other.toLocaleString()} />
+                        <MiniStat label="Shop stewards" value={String(membership!.stewards)} />
                       </div>
                     </CardContent>
                   </Card>
@@ -1292,7 +1231,7 @@ export function AffiliateDashboardPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm">
                   <p className="flex items-center gap-2 text-muted-foreground">
                     <Clock3 className="h-4 w-4" />
-                    Affiliate record last updated {affiliate.updated}
+                    Affiliate record last updated {affiliate!.updated}
                   </p>
                   <Button variant="outline" size="sm" onClick={() => setSection('Support')}>
                     Contact ZATUC <ChevronRight className="ml-1 h-4 w-4" />
@@ -1319,7 +1258,18 @@ export function AffiliateDashboardPage() {
                 </Panel>
 
                 <Panel title="Affiliate status history" intro="Recorded status changes for this affiliate.">
-                  {statusHistory.length ? <div className="divide-y">{statusHistory.map((item, index) => <div key={item.id ?? index} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span className="font-medium">{item.status}</span><span className="text-muted-foreground">{item.reason} · {item.changed_at ? new Date(item.changed_at).toLocaleDateString() : ''}{item.changed_by ? ` · ${item.changed_by}` : ''}</span></div>)}</div> : <p className="text-sm text-muted-foreground">No status history recorded.</p>}
+                  {statusHistory.length ?
+                    <div className="divide-y">
+                      {statusHistory.map((item, index) =>
+                        <div key={item.id ?? index} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
+                          <span className="font-medium">{item.status}</span>
+                          <span className="text-muted-foreground">
+                            {item.reason} · {item.changed_at ? new Date(item.changed_at).toLocaleDateString() : ''}
+                            {item.changed_by ? ` · ${item.changed_by}` : ''}
+                          </span>
+                        </div>)}
+                    </div>
+                    : <p className="text-sm text-muted-foreground">No status history recorded.</p>}
                 </Panel>
               </>
             )}
@@ -1332,37 +1282,37 @@ export function AffiliateDashboardPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <EditableNumberField
                     label="Declared members"
-                    value={membership.declared}
+                    value={membership!.declared}
                     onSave={(v) => updateMembership('declared', v)}
                   />
                   <EditableNumberField
                     label="Paid-up members"
-                    value={membership.paid}
+                    value={membership!.paid}
                     onSave={(v) => updateMembership('paid', v)}
                   />
                   <EditableNumberField
                     label="Executive committee"
-                    value={membership.executiveCommittee}
+                    value={membership!.executiveCommittee}
                     onSave={(v) => updateMembership('executiveCommittee', v)}
                   />
                   <EditableNumberField
                     label="Women"
-                    value={membership.women}
+                    value={membership!.women}
                     onSave={(v) => updateMembership('women', v)}
                   />
                   <EditableNumberField
                     label="Men"
-                    value={membership.men}
+                    value={membership!.men}
                     onSave={(v) => updateMembership('men', v)}
                   />
                   <EditableNumberField
                     label="Other"
-                    value={membership.other}
+                    value={membership!.other}
                     onSave={(v) => updateMembership('other', v)}
                   />
                   <EditableNumberField
                     label="Shop stewards"
-                    value={membership.stewards}
+                    value={membership!.stewards}
                     onSave={(v) => updateMembership('stewards', v)}
                   />
                 </div>
@@ -1370,22 +1320,22 @@ export function AffiliateDashboardPage() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <EditableField
                     label="Regions represented"
-                    value={membership.regions}
+                    value={membership!.regions}
                     onSave={(v) => updateMembership('regions', v)}
                   />
                   <EditableField
                     label="Sectors"
-                    value={membership.sectors}
+                    value={membership!.sectors}
                     onSave={(v) => updateMembership('sectors', v)}
                   />
                   <EditableField
                     label="Last congress"
-                    value={membership.lastCongress}
+                    value={membership!.lastCongress}
                     onSave={(v) => updateMembership('lastCongress', v)}
                   />
                   <EditableField
                     label="Constitution version"
-                    value={membership.constitutionVersion}
+                    value={membership!.constitutionVersion}
                     onSave={(v) => updateMembership('constitutionVersion', v)}
                   />
                 </div>
@@ -1431,7 +1381,7 @@ export function AffiliateDashboardPage() {
                     />
                     <EditableField
                       label="Financial standing"
-                      value={affiliate.standing}
+                      value={affiliate!.standing}
                       onSave={(v) => updateAffiliate('standing', v)}
                     />
                   </div>

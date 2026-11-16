@@ -258,7 +258,7 @@ export default function InvitationConfirmationPage() {
 
         <div className="text-center mb-8">
           <img
-            src="/logo.png"
+            src="/logo.jpeg"
             alt="ZATUC Logo"
             className="h-16 w-16 rounded-2xl object-cover mx-auto"
           />

@@ -431,7 +431,7 @@ export default function ProjectDetailPage({ params }: { params: Params }) {
       const supabase = getSupabaseBrowserClient()
       if (!supabase) throw new Error('Supabase is not configured.')
       const saved = await createProjectResource(supabase, {
-        id: '',
+        // id: '',
         project_id: project.id,
         ...newResource,
         unit: newResource.unit || 'unit',
@@ -1140,7 +1140,7 @@ export default function ProjectDetailPage({ params }: { params: Params }) {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => removeResource(res.id)}
+                        onClick={() => removeResource(res.id!)}
                       >
                         <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                         Remove
