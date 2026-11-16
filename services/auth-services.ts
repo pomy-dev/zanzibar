@@ -289,7 +289,6 @@ export async function deleteUserAccount(client: SupabaseClient, session: Session
       const response = await error.context.json();
       message = response.error || message;
     }
-
     throw new Error(message);
   }
 
