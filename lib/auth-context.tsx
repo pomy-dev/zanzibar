@@ -62,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      // Let the auth callback finish before querying the profile with the same client.
       queueMicrotask(() => {
         if (isMounted) void hydrateSession(client, session)
       })
