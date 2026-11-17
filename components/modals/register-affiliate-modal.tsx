@@ -140,9 +140,9 @@ export function RegisterAffiliateModal({ open, onOpenChange, onSubmit, initialAf
       shop_stewards: numberValue(formData.shopStewards),
       dues_rate: formData.duesRate.trim(),
       payment_history: formData.paymentHistory.trim(),
-      financial_standing: "Suspended",
+      financial_standing: formData.financialStanding || "Suspended",
       bank_details: formData.bankDetails.trim(),
-      status: "Provisional",
+      status: formData.status || "Provisional",
       notes: formData.notes.trim(),
       documentFiles
     })

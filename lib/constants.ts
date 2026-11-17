@@ -1,15 +1,8 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import {
-  LayoutDashboard,
-  Users,
-  UserCog,
-  Briefcase,
-  Calendar,
-  LifeBuoy,
-  FileText,
-  Settings, Currency,
-  Building2,
+  LayoutDashboard, UserCog, Briefcase, Calendar, LifeBuoy, FileText,
+  Settings, Currency, GitBranch, Building2
 } from 'lucide-react'
 import { Role, ActivityLogEntry } from '@/lib/types'
 import { createActivityLog } from '@/services/auth-services'
@@ -75,7 +68,7 @@ export const menuItems = [
   {
     label: 'Branches',
     href: '/branches',
-    icon: Building2,
+    icon: GitBranch,
     accesses: ['Overview', 'Branches', 'Users', 'Affiliates', 'Financial', 'Projects', 'Events', 'Grievances', 'E-Filing', 'Settings'],
   },
   {
@@ -87,7 +80,7 @@ export const menuItems = [
   {
     label: 'Affiliates',
     href: '/members',
-    icon: Users,
+    icon: Building2,
     accesses: ['Overview', 'Branches', 'Users', 'Affiliates', 'Financial', 'Projects', 'Events', 'Grievances', 'E-Filing', 'Settings'],
   },
   {

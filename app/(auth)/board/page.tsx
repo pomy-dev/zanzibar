@@ -30,12 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
+  Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -45,37 +40,13 @@ import { useAuth } from '@/lib/auth-context'
 import { Permission, Role, AppUser, ActivityLogEntry } from '@/lib/types'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
-  Plus,
-  Search,
-  Download,
-  MoreVertical,
-  Eye,
-  Pencil,
-  FileDown,
-  RotateCcwKey,
-  Trash2,
-  Filter,
-  Calendar,
-  Activity,
-  Users,
-  ShieldCheck,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  FileSpreadsheet,
-  FileText,
+  Plus, Search, Download, MoreVertical, Eye, Pencil, FileDown, RotateCcwKey, Trash2,
+  Filter, Calendar, Activity, Users, ShieldCheck, Clock, ChevronLeft, ChevronRight,
+  FileSpreadsheet, FileText,
 } from 'lucide-react'
 import {
-  getAllPermissions,
-  createRole,
-  getAllRoles,
-  updateRole,
-  getAllUsersWithRoles,
-  createUserAccount,
-  updateUserAccount,
-  resendInvitation,
-  deleteUserAccount,
-  getActivityLogs,
+  getAllPermissions, createRole, getAllRoles, updateRole, getAllUsersWithRoles, createUserAccount,
+  updateUserAccount, resendInvitation, deleteUserAccount, getActivityLogs,
 } from '@/services/auth-services'
 import { cn } from "@/lib/utils"
 import { canSee, formatLabel, menuItems, getRoleAccesses } from '@/lib/constants'

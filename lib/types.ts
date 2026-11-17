@@ -108,7 +108,9 @@ export interface AffiliateDocument {
   category: 'Constitution' | 'Registration' | 'Minutes' | 'Resolution' | 'Financial' | 'Other'
   version?: string
   url?: string
+  archived_at?: string
   uploaded_at?: Date
+  file?: File
 }
 
 export interface Affiliate {

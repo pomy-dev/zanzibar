@@ -9,10 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Affiliate, AffiliateDocument, AppUser } from '@/lib/types'
+import { toast } from 'sonner'
 import {
-  CreditCard, FileText, Bell, Link2, BarChart3, Upload, ImageIcon,
-  File, Loader2, X, Share2, Archive, Unlink,
+  CreditCard, FileText, Bell, Link2, BarChart3, Upload,
+  File, Loader2, X, Archive, Unlink,
 } from 'lucide-react'
+import { Badge } from '../ui/badge'
+import { DocumentShareMenu } from './document-share-menu'
 
 export type AffiliateAction = 'payment' | 'document' | 'notify' | 'link' | 'report'
 
@@ -21,6 +24,7 @@ export type AffiliateActionPayload = Record<string, string> & {
   fileType?: string
   fileSize?: string
   fileDataUrl?: string
+  file?: File | string
 }
 
 interface AffiliateActionsModalProps {
@@ -32,7 +36,7 @@ interface AffiliateActionsModalProps {
   users?: AppUser[]
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: AffiliateActionPayload) => void | Promise<void>
-  onDocumentAction: (action: 'archive' | 'share', document: AffiliateDocument) => void
+  onDocumentAction: (action: 'archive', document: AffiliateDocument) => void | Promise<void>
   onLinkAction: (action: 'unlink', link: any) => void
 }
 
@@ -229,6 +233,8 @@ export function AffiliateActionsModal({
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [archivingDocumentId, setArchivingDocumentId] = useState<string | null>(null)
+  const [archivedDocumentIds, setArchivedDocumentIds] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     if (!open) return
@@ -236,6 +242,8 @@ export function AffiliateActionsModal({
     setFile(null)
     setPreviewUrl(null)
     setIsSubmitting(false)
+    setArchivingDocumentId(null)
+    setArchivedDocumentIds(new Set())
   }, [open, action, affiliate?.id])
 
   useEffect(() => {
@@ -264,6 +272,18 @@ export function AffiliateActionsModal({
     }))
   }
 
+  const archiveDocument = async (document: AffiliateDocument) => {
+    setArchivingDocumentId(document.id)
+    try {
+      await onDocumentAction('archive', document)
+      setArchivedDocumentIds((previous) => new Set(previous).add(document.id))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to archive document.')
+    } finally {
+      setArchivingDocumentId(null)
+    }
+  }
+
   const filteredUsers = users.filter((u) => u.role?.name === "Affiliate Secretary")
 
   const readFileAsDataUrl = (selected: File) =>
@@ -286,13 +306,33 @@ export function AffiliateActionsModal({
         payload.fileName = file.name
         payload.fileType = file.type
         payload.fileSize = String(file.size)
-        // Keep the form payload small; skip huge inline binaries.
-        if (file.size <= 1.5 * 1024 * 1024) {
-          payload.fileDataUrl = await readFileAsDataUrl(file)
+
+        // Check file size limit
+        if (file.size > 1.5 * 1024 * 1024) {
+          console.error('File size exceeds the recommended limit (1.5 MB). Please choose a smaller file.');
+          setIsSubmitting(false);
+          return;
         }
+
+        // Read file as data URL
+        payload.fileDataUrl = await readFileAsDataUrl(file);
+
+        if (action === 'payment' || action === 'document') {
+          // For payment action, the 'file' property of the payload sent to onSubmit
+          // should be the data URL string.
+          payload.file = payload.fileDataUrl;
+        } else {
+          // For other actions, send the actual File object
+          payload.file = file;
+        }
+
         if (action === 'document' && !payload.name.trim()) {
           payload.name = file.name
         }
+      } else if (action === 'payment' || action === 'document') {
+        // If no file is selected for payment, ensure payload.file is undefined
+        // to correctly trigger the 'Missing payment receipt file' validation in page.tsx
+        payload.file = undefined;
       }
 
       await onSubmit(payload)
@@ -347,13 +387,14 @@ export function AffiliateActionsModal({
                     id="period"
                     placeholder="October 2026"
                     required
+                    type='month'
                     disabled={isSubmitting}
                     value={form.period}
                     onChange={(event) => update('period', event.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="reference">Receipt / reference</Label>
+                  <Label htmlFor="reference">Reference</Label>
                   <Input
                     id="reference"
                     disabled={isSubmitting}
@@ -366,7 +407,7 @@ export function AffiliateActionsModal({
 
               <FilePicker
                 id="payment-proof"
-                label="Receipt or proof of payment"
+                label="Proof of payment"
                 hint="PDF, JPG, PNG · max recommended 1.5 MB for local storage"
                 accept="image/*,.pdf,application/pdf"
                 file={file}
@@ -388,12 +429,7 @@ export function AffiliateActionsModal({
                 file={file}
                 previewUrl={previewUrl}
                 disabled={isSubmitting}
-                onChange={(selected) => {
-                  setFile(selected)
-                  if (selected && !form.name.trim()) {
-                    update('name', selected.name)
-                  }
-                }}
+                onChange={setFile}
                 onClear={() => setFile(null)}
               />
 
@@ -455,33 +491,36 @@ export function AffiliateActionsModal({
                       >
                         <div className="min-w-0">
                           <p className="truncate font-medium">
-                            {document.name}
-                            {document.version ? ` · ${document.version}` : ''}
+                            {document.name} {document.archived_at && (<>• <Badge>Archived</Badge></>)}
                           </p>
                           <p className="text-xs text-muted-foreground">{document.category}</p>
                         </div>
                         <span className="flex shrink-0 gap-1">
-                          <Button
+                          <DocumentShareMenu
+                            title={document.name}
+                            details={`${affiliate.acronym}: ${document.name}${document.version ? ` (${document.version})` : ''}`}
+                            url={document.url}
+                          />
+                          {!document.archived_at && !archivedDocumentIds.has(document.id) && (<Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            disabled={isSubmitting}
-                            onClick={() => onDocumentAction('share', document)}
-                          >
-                            <Share2 className="mr-1 h-3.5 w-3.5" />
-                            Share
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || archivingDocumentId !== null}
                             className="text-destructive"
-                            onClick={() => onDocumentAction('archive', document)}
+                            onClick={() => void archiveDocument(document)}
                           >
-                            <Archive className="mr-1 h-3.5 w-3.5" />
-                            Archive
-                          </Button>
+                            {archivingDocumentId === document.id ? (
+                              <>
+                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                Archiving…
+                              </>
+                            ) : (
+                              <>
+                                <Archive className="mr-1 h-3.5 w-3.5" />
+                                Archive
+                              </>
+                            )}
+                          </Button>)}
                         </span>
                       </div>
                     ))}

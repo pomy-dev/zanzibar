@@ -29,6 +29,7 @@ import {
 import { getAllUsersWithRoles } from '@/services/auth-services'
 import { createHelpdeskCase, getHelpdeskCases } from '@/services/help-desk-service'
 import { FileCaseModal } from '@/components/modals/file-case-modal'
+import { DocumentShareMenu } from '@/components/modals/document-share-menu'
 import { HelpDeskCase, AppUser } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -850,16 +851,6 @@ export function AffiliateDashboardPage() {
       .then(() => { setDocuments(prev => prev.filter(d => d.id !== id)); setPreviewDoc(cur => cur?.id === id ? null : cur); touchUpdated() })
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Unable to remove document.'))
   }
-  const shareDocument = async (doc: DocumentItem) => {
-    const text = `${doc.name}${doc.caption ? ` — ${doc.caption}` : ''} (${doc.type}, ${doc.date})`
-    try {
-      await navigator.clipboard?.writeText(text)
-      alert('Document reference copied for sharing.')
-    } catch {
-      alert(text)
-    }
-  }
-
   const downloadDocument = async (doc: DocumentItem) => {
     try {
       const publicMarker = '/storage/v1/object/public/affiliate-documents/'
@@ -1581,7 +1572,11 @@ export function AffiliateDashboardPage() {
                             Preview
                           </Button>
                           {doc.fileDataUrl && <Button type="button" variant="outline" size="sm" onClick={() => void downloadDocument(doc)}><Download className="mr-1 h-3.5 w-3.5" />Download</Button>}
-                          {canManage && <Button type="button" variant="ghost" size="sm" onClick={() => void shareDocument(doc)}>Share</Button>}
+                          {canManage && <DocumentShareMenu
+                            title={doc.name}
+                            details={`${doc.name}${doc.caption ? ` — ${doc.caption}` : ''} (${doc.type}, ${doc.date})`}
+                            url={doc.fileDataUrl}
+                          />}
                           {canManage && <>
                             {doc.archived ? (
                               <Button type="button" variant="outline" size="sm" onClick={() => restoreDocument(doc.id)}>Restore</Button>
@@ -1688,7 +1683,11 @@ export function AffiliateDashboardPage() {
                 <p className="text-sm text-muted-foreground">No file content stored for preview (metadata only).</p>
               )}
               <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-                {canManage && <Button type="button" variant="outline" onClick={() => previewDoc && void shareDocument(previewDoc)}>Share</Button>}
+                {canManage && previewDoc && <DocumentShareMenu
+                  title={previewDoc.name}
+                  details={`${previewDoc.name}${previewDoc.caption ? ` — ${previewDoc.caption}` : ''} (${previewDoc.type}, ${previewDoc.date})`}
+                  url={previewDoc.fileDataUrl}
+                />}
                 <Button type="button" variant="outline" onClick={() => setPreviewDoc(null)}>Close</Button>
               </div>
             </DialogContent>
