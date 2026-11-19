@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { recordActivityLog } from '@/lib/constants'
+import { getAllMembers } from '@/services/affiliate-service'
 
 import {
   createBranch, getAllBranches, activateBranch, deactivateBranch, deleteBranch,
@@ -53,6 +54,7 @@ export default function BranchesPage() {
   const { user } = useAuth()
   const { ip } = useUserIP();
   const [branches, setBranches] = useState<Branch[]>([])
+  const [members, setMembers] = useState<any[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null)
   const [assigningBranch, setAssigningBranch] = useState<Branch | null>(null)
@@ -104,11 +106,21 @@ export default function BranchesPage() {
       setUsers(loadedUsers!)
     }
 
+    const loadMembers = async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Supabase is not configured.')
+      const loadedMembers = await getAllMembers(supabase)
+      if (!cancelled) setMembers(loadedMembers)
+    }
+
     void loadRolesAndPermissions().catch((error: unknown) => {
       console.error('Unable to load roles and permissions:', error)
     })
     void loadUsers().catch((error: unknown) => {
       console.error('Unable to load roles and permissions:', error)
+    })
+    void loadMembers().catch((error: unknown) => {
+      console.error('Unable to load branch members:', error)
     })
     void fetchBranches().catch((error: unknown) => {
       console.error('Unable to load branches:', error)
@@ -156,13 +168,13 @@ export default function BranchesPage() {
   }
 
   const memberCounts = useMemo(() => {
-    const members = JSON.parse(localStorage.getItem('members') || '[]')
     const counts: Record<string, number> = {}
-    members.forEach((m: any) => {
-      counts[m.branchId] = (counts[m.branchId] || 0) + 1
+    members.forEach((member: any) => {
+      if (!member.branch_id) return
+      counts[member.branch_id] = (counts[member.branch_id] || 0) + 1
     })
     return counts
-  }, [branches])
+  }, [members])
 
   const handleToggleActive = async (branchId: string) => {
     const updated = branches.map((b) =>

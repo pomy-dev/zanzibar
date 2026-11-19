@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -71,6 +72,7 @@ type AvailableUser = {
 export default function ProjectDetailPage({ params }: { params: Params }) {
   const { user } = useAuth()
   const { ip } = useUserIP()
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null)
   const [activeSection, setActiveSection] = useState<'overview' | 'phases' | 'team' | 'resources'>('overview')
   const [newPhaseName, setNewPhaseName] = useState('')
@@ -556,8 +558,10 @@ export default function ProjectDetailPage({ params }: { params: Params }) {
     return (
       <div className="container mx-auto max-w-5xl py-12 text-center">
         <p className="text-lg text-muted-foreground">Project not found</p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link href="/projects">Back to Projects</Link>
+        <Button variant="ghost"
+          size="icon"
+          onClick={() => router.back()} className="mt-4">
+          <ArrowLeft className='w-5 h-5' />Back
         </Button>
       </div>
     )
@@ -581,13 +585,11 @@ export default function ProjectDetailPage({ params }: { params: Params }) {
 
   return (
     <div className="container mx-auto max-w-5xl space-y-6 py-8 px-4">
-      <Link
-        href="/projects"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Projects
-      </Link>
+      <Button variant="ghost"
+        size="icon"
+        onClick={() => router.back()} className="mt-4">
+        <ArrowLeft className='w-5 h-5' />Back
+      </Button>
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

@@ -7,7 +7,7 @@ import {
   ArrowDownRight, ArrowUpRight, CalendarDays, Check, CheckCircle2, ChevronRight,
   CircleDollarSign, Clock3, FileText, FolderKanban, Headphones, Loader2, MapPin,
   Pencil, Plus, Save, ShieldCheck, Users, X, Upload, Archive, Trash2, Download,
-  ArrowLeftIcon
+  ArrowLeft
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -936,7 +936,7 @@ export function AffiliateDashboardPage() {
         {loadError && <div className="mx-auto max-w-7xl px-6 pt-5"><p role="alert" className="text-sm text-destructive">{loadError}</p></div>}
 
         <div className="mx-auto flex max-w-7xl justify-between gap-2 px-4 pt-4 md:px-7">
-          {isSecretaryGeneral && <Link href='/members' className='flex flex-wrap underline'><ArrowLeftIcon />&nbsp;Back</Link>}
+          {isSecretaryGeneral && <Button variant="ghost" size="icon" onClick={() => router.back()} className="mt-4"><ArrowLeft className='w-5 h-5' />Back</Button>}
           <Button type="button" variant="outline" onClick={exportAffiliateReport}><Download className="mr-2 h-4 w-4" />Download report</Button>
         </div>
 

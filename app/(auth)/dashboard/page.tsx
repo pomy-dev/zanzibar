@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,16 +10,28 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Users, DollarSign, Briefcase, AlertCircle, Plus, Trash2, CheckCircle, Clock, Image as ImageIcon } from 'lucide-react'
+import { Users, DollarSign, Briefcase, AlertCircle, CheckCircle, Clock, Plus, Trash2, CalendarDays, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { recordActivityLog } from '@/lib/constants'
 import { useUserIP } from '@/lib/userUserIp'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const { ip } = useUserIP()
   const [activeTab, setActiveTab] = useState('overview')
   const [articles, setArticles] = useState<any[]>([])
+  const [members, setMembers] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
+  const [financialRecords, setFinancialRecords] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [cases, setCases] = useState<any[]>([])
+  const [affiliates, setAffiliates] = useState<any[]>([])
+  const [affiliatePayments, setAffiliatePayments] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
+  const [dashboardError, setDashboardError] = useState('')
   const [showArticleForm, setShowArticleForm] = useState(false)
   const [articleForm, setArticleForm] = useState({
     title: '',
@@ -29,10 +43,55 @@ export default function DashboardPage() {
     attachedFiles: [] as any[]
   })
 
-  useMemo(() => {
-    const stored = JSON.parse(localStorage.getItem('articles') || '[]')
-    setArticles(stored)
-  }, [activeTab === 'articles'])
+  useEffect(() => {
+    try {
+      setArticles(JSON.parse(localStorage.getItem('articles') || '[]'))
+    } catch {
+      setArticles([])
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const loadDashboard = async () => {
+      setIsLoadingDashboard(true)
+      setDashboardError('')
+      try {
+        const supabase = getSupabaseBrowserClient()
+        if (!supabase) throw new Error('Supabase is not configured.')
+        const [memberResult, branchResult, financeResult, projectResult, caseResult, affiliateResult, paymentResult, eventResult] = await Promise.all([
+          supabase.from('members').select('id, branch_id, affiliate_id, tucoswa_status'),
+          supabase.from('branches').select('id, branch_name'),
+          supabase.from('financial_records').select('transaction_type, amount, transaction_date'),
+          supabase.from('projects').select('id, status'),
+          supabase.from('helpdesk_cases').select('id, title, status, updated_at, created_at, branch_id, affiliate_id'),
+          supabase.from('affiliates').select('id, official_name, acronym, status, financial_standing, declared_membership, active'),
+          supabase.from('affiliate_payments').select('affiliate_id, payment_date, recorded_at, status'),
+          supabase.from('events').select('*'),
+        ])
+        const results = [memberResult, branchResult, financeResult, projectResult, caseResult, affiliateResult, paymentResult, eventResult]
+        const failed = results.find(result => result.error)
+        if (failed?.error) throw failed.error
+        if (cancelled) return
+        setMembers(memberResult.data ?? [])
+        setBranches(branchResult.data ?? [])
+        setFinancialRecords(financeResult.data ?? [])
+        setProjects(projectResult.data ?? [])
+        setCases(caseResult.data ?? [])
+        setAffiliates(affiliateResult.data ?? [])
+        setAffiliatePayments(paymentResult.data ?? [])
+        setEvents(eventResult.data ?? [])
+      } catch (error) {
+        console.error('Unable to load dashboard data:', error)
+        if (!cancelled) setDashboardError(error instanceof Error ? error.message : 'Unable to load dashboard data.')
+      } finally {
+        if (!cancelled) setIsLoadingDashboard(false)
+      }
+    }
+    void loadDashboard()
+    return () => { cancelled = true }
+  }, [user])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -105,24 +164,19 @@ export default function DashboardPage() {
   }
 
   const stats = useMemo(() => {
-    const members = JSON.parse(localStorage.getItem('members') || '[]')
-    const financialRecords = JSON.parse(localStorage.getItem('financialRecords') || '[]')
-    const projects = JSON.parse(localStorage.getItem('projects') || '[]')
-    const cases = JSON.parse(localStorage.getItem('helpDeskCases') || '[]')
-
-    const totalMembers = members.length
-    const totalIncome = financialRecords
-      .filter((r: any) => r.type === 'income')
-      .reduce((sum: number, r: any) => sum + r.amount, 0)
-    const totalExpense = financialRecords
-      .filter((r: any) => r.type === 'expense')
-      .reduce((sum: number, r: any) => sum + r.amount, 0)
-    const balance = totalIncome - totalExpense
-    const activeProjects = projects.filter((p: any) => p.status === 'in_progress').length
-    const openCases = cases.filter((c: any) => c.status !== 'resolved').length
-
-    return { totalMembers, totalIncome, totalExpense, balance, activeProjects, openCases }
-  }, [])
+    const totalIncome = financialRecords.filter(record => record.transaction_type === 'income')
+      .reduce((sum, record) => sum + Number(record.amount || 0), 0)
+    const totalExpense = financialRecords.filter(record => record.transaction_type === 'expense')
+      .reduce((sum, record) => sum + Number(record.amount || 0), 0)
+    return {
+      totalMembers: members.length,
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      activeProjects: projects.filter(project => project.status === 'in_progress').length,
+      openCases: cases.filter(item => item.status !== 'completed').length,
+    }
+  }, [members, financialRecords, projects, cases])
 
   const generateUniqueColors = (count: number): string[] => {
     const palette = ['#315A85', '#4F8A8B', '#80658F', '#C89C45', '#BF6B61'];
@@ -130,45 +184,54 @@ export default function DashboardPage() {
   };
 
   const chartData = useMemo(() => {
-    const financialRecords = JSON.parse(localStorage.getItem('financialRecords') || '[]')
-    const monthlyData = {
-      'Jan': { income: 0, expense: 0 },
-      'Feb': { income: 0, expense: 0 },
-      'Mar': { income: 0, expense: 0 },
-      'Apr': { income: 0, expense: 0 },
-      'May': { income: 0, expense: 0 },
-      'Jun': { income: 0, expense: 0 },
-      'Jul': { income: 0, expense: 0 }
-    }
-
-    financialRecords.forEach((record: any) => {
-      const date = new Date(record.date)
-      const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]
-      if (monthlyData[month as keyof typeof monthlyData]) {
-        if (record.type === 'income') {
-          monthlyData[month as keyof typeof monthlyData].income += record.amount
-        } else {
-          monthlyData[month as keyof typeof monthlyData].expense += record.amount
-        }
-      }
+    const months = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date()
+      date.setDate(1)
+      date.setMonth(date.getMonth() - (6 - index))
+      return { key: `${date.getFullYear()}-${date.getMonth()}`, month: date.toLocaleDateString('en', { month: 'short' }), income: 0, expense: 0 }
     })
+    financialRecords.forEach(record => {
+      const date = new Date(record.transaction_date)
+      const row = months.find(item => item.key === `${date.getFullYear()}-${date.getMonth()}`)
+      if (!row) return
+      if (record.transaction_type === 'income') row.income += Number(record.amount || 0)
+      else if (record.transaction_type === 'expense') row.expense += Number(record.amount || 0)
+    })
+    return months.map(({ month, income, expense }) => ({ month, income, expense }))
+  }, [financialRecords])
 
-    return Object.entries(monthlyData).map(([month, data]) => ({
-      month,
-      income: data.income,
-      expense: data.expense
+  const branchData = useMemo(() => branches.map(branch => ({
+    name: branch.branch_name,
+    value: members.filter(member => member.branch_id === branch.id).length,
+  })), [branches, members])
+
+  const affiliateSnapshot = useMemo(() => {
+    const activeAffiliates = affiliates.filter(affiliate => affiliate.active !== false)
+      .map(affiliate => ({
+        ...affiliate,
+        memberCount: Number(affiliate.declared_membership ?? 0),
+        lastSubscription: affiliatePayments
+          .filter(payment => payment.affiliate_id === affiliate.id && payment.status === 'Received')
+          .sort((a, b) => Date.parse(b.payment_date || b.recorded_at) - Date.parse(a.payment_date || a.recorded_at))[0],
+      }))
+      .sort((a, b) => b.memberCount - a.memberCount)
+    const maxMembers = Math.max(1, ...activeAffiliates.map(affiliate => affiliate.memberCount))
+    return activeAffiliates.slice(0, 3).map(affiliate => ({
+      ...affiliate,
+      membershipProgress: Math.round(affiliate.memberCount / maxMembers * 100),
     }))
-  }, [])
+  }, [affiliates, members, affiliatePayments])
 
-  const branchData = useMemo(() => {
-    const members = JSON.parse(localStorage.getItem('members') || '[]')
-    const branches = JSON.parse(localStorage.getItem('branches') || '[]')
-
-    return branches.map((branch: any) => ({
-      name: branch.name,
-      value: members.filter((m: any) => m.branchId === branch.id).length
-    }))
-  }, [])
+  const recentCases = useMemo(() => cases
+    .filter(item => item.status !== 'completed')
+    .sort((a, b) => Date.parse(b.updated_at || b.created_at) - Date.parse(a.updated_at || a.created_at))
+    .slice(0, 5), [cases])
+  const upcomingEvents = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    return events.filter(event => !event.archived && String(event.event_date ?? '').slice(0, 10) >= today)
+      .sort((a, b) => String(a.event_date).localeCompare(String(b.event_date)))
+      .slice(0, 5)
+  }, [events])
 
   const pieColors = useMemo(() => {
     return generateUniqueColors(branchData.length);
@@ -208,6 +271,7 @@ export default function DashboardPage() {
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {dashboardError && <p role="alert" className="text-sm text-destructive">{dashboardError}</p>}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -314,42 +378,111 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Recent Activity */}
           <Card>
-            <CardHeader>
-              <CardTitle>System Status</CardTitle>
-              <CardDescription>Quick overview of active modules</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <div>
+                <CardTitle>Affiliate membership snapshot</CardTitle>
+                <CardDescription>Top three active affiliates by registered individual members</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => router.push('/members')}>
+                More <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="flex flex-col items-center p-4 bg-card rounded-lg border border-border">
-                  <Users className="w-6 h-6 text-accent mb-2" />
-                  <span className="text-sm font-semibold">Members</span>
-                  <span className="text-xs text-muted-foreground mt-1">Active</span>
+              {isLoadingDashboard ? <p className="text-sm text-muted-foreground">Loading affiliate data…</p> : affiliateSnapshot.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active affiliates found.</p>
+              ) : (
+                <div className="space-y-5">
+                  {affiliateSnapshot.map(affiliate => (
+                    <div key={affiliate.id} className="grid gap-3 border-b border-border pb-4 last:border-0 last:pb-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_minmax(180px,1fr)] md:items-center">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{affiliate.acronym || affiliate.official_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{affiliate.official_name}</p>
+                      </div>
+                      <Badge variant="secondary">{affiliate.status || 'Status not recorded'}</Badge>
+                      <div>
+                        <Badge className={affiliate.financial_standing === 'Good standing' ? 'bg-emerald-100 text-emerald-800' : affiliate.financial_standing === 'Arrears' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
+                          {affiliate.financial_standing || 'Standing not recorded'}
+                        </Badge>
+                        <p className="mt-1 text-xs text-muted-foreground">Last subscription: {affiliate.lastSubscription?.payment_date ? new Date(affiliate.lastSubscription.payment_date).toLocaleDateString() : 'Not recorded'}</p>
+                      </div>
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span>{affiliate.memberCount} members</span>
+                          <span>{affiliate.membershipProgress}% of largest affiliate</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label={`${affiliate.acronym || affiliate.official_name} membership compared with largest affiliate`} aria-valuenow={affiliate.membershipProgress} aria-valuemin={0} aria-valuemax={100}>
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${affiliate.membershipProgress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex flex-col items-center p-4 bg-card rounded-lg border border-border">
-                  <DollarSign className="w-6 h-6 text-accent mb-2" />
-                  <span className="text-sm font-semibold">Financial</span>
-                  <span className="text-xs text-muted-foreground mt-1">Tracked</span>
-                </div>
-                <div className="flex flex-col items-center p-4 bg-card rounded-lg border border-border">
-                  <Briefcase className="w-6 h-6 text-accent mb-2" />
-                  <span className="text-sm font-semibold">Projects</span>
-                  <span className="text-xs text-muted-foreground mt-1">{stats.activeProjects} Active</span>
-                </div>
-                <div className="flex flex-col items-center p-4 bg-card rounded-lg border border-border">
-                  <AlertCircle className="w-6 h-6 text-accent mb-2" />
-                  <span className="text-sm font-semibold">Helpdesk</span>
-                  <span className="text-xs text-muted-foreground mt-1">{stats.openCases} Open</span>
-                </div>
-                <div className="flex flex-col items-center p-4 bg-card rounded-lg border border-border">
-                  <Badge variant="secondary" className="mb-2">v1.0</Badge>
-                  <span className="text-sm font-semibold">System</span>
-                  <span className="text-xs text-muted-foreground mt-1">Online</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Recent grievances & queries</CardTitle>
+                  <CardDescription>{stats.openCases} unresolved cases</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => router.push('/helpdesk')}>
+                  View all <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoadingDashboard ? <p className="text-sm text-muted-foreground">Loading grievances…</p> : recentCases.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No unresolved grievances or queries.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentCases.map(item => (
+                      <Link key={item.id} href={`/helpdesk/${item.id}`} className="flex w-full items-center justify-between gap-3 border-b border-border p-3 text-left transition hover:bg-muted/50">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{item.title}</span>
+                          <span className="block text-xs text-muted-foreground">{item.member_name || 'Member query'} · {new Date(item.updated_at || item.created_at).toLocaleDateString()}</span>
+                        </span>
+                        <Badge variant="secondary" className="shrink-0">{String(item.status).replaceAll('_', ' ')}</Badge>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Coming events</CardTitle>
+                  <CardDescription>Upcoming union and affiliate events</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => router.push('/events')}>
+                  View all <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoadingDashboard ? <p className="text-sm text-muted-foreground">Loading events…</p> : upcomingEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming events scheduled.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {upcomingEvents.map(event => (
+                      <button key={event.id} type="button" onClick={() => router.push(`/events/${event.id}`)} className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition hover:bg-muted/50">
+                        <span className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <CalendarDays className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{event.title}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{event.location || 'Location not set'} · {new Date(event.event_date).toLocaleDateString()}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 

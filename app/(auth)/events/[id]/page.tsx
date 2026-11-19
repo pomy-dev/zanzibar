@@ -11,7 +11,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { deleteEvent, deleteEventInvitation, getEventById, getEventFiles, getEventInvitations, updateEvent, updateEventInvitationStatus } from '@/services/events-service'
 import { EventInviteModal } from '@/components/modals/event-invite-modal'
 import { toast } from 'sonner'
-import { ChevronLeft, Calendar, MapPin, Trash2, Users, ExpandIcon } from 'lucide-react'
+import { ChevronLeft, Calendar, MapPin, Trash2, ArrowLeft, Users, ExpandIcon } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 
 export default function EventDetailPage() {
@@ -101,7 +101,11 @@ export default function EventDetailPage() {
     <main className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Button variant="ghost" className="-ml-3 mb-2" onClick={() => router.push('/events')}><ChevronLeft className="mr-1 h-4 w-4" />Back to Events</Button>
+          <Button variant="ghost"
+            size="icon"
+            onClick={() => router.back()} className="mt-4">
+            <ArrowLeft className='w-5 h-5' />Back
+          </Button>
           <h1 className="text-3xl font-semibold">{event.title}</h1>
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground"><span className="flex items-center gap-2"><Calendar className="h-4 w-4" />{new Date(event.event_date).toLocaleString()}</span><span className="flex items-center gap-2"><MapPin className="h-4 w-4" />{event.location}</span></div>
         </div>
