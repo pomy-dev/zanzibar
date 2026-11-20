@@ -51,20 +51,20 @@ export function DocumentShareMenu({ title, details, url }: DocumentShareMenuProp
         Share
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer')}>
+        <DropdownMenuItem onClick={(e) => { e.preventDefault(); window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer') }}>
           <MessageCircle /> WhatsApp
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.location.assign(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareText)}`)}>
+        <DropdownMenuItem onClick={(e) => { e.preventDefault(); window.location.assign(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareText)}`) }}>
           <Mail /> Email
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.location.assign(`sms:?body=${encodeURIComponent(shareText)}`)}>
+        <DropdownMenuItem onClick={(e) => { e.preventDefault(); window.location.assign(`sms:?body=${encodeURIComponent(shareText)}`) }}>
           <Smartphone /> SMS
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void copyToClipboard()}>
-          <Copy /> Copy to clipboard
+        <DropdownMenuItem onClick={(e) => { e.preventDefault(); void copyToClipboard() }}>
+          <Copy /> Copy
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void shareWithDevice()}>
-          <Share2 /> More sharing options
+        <DropdownMenuItem onClick={(e) => { e.preventDefault(); void shareWithDevice() }}>
+          <Share2 /> More...
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

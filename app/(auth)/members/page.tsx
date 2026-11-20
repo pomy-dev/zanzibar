@@ -781,45 +781,47 @@ export default function MembersPage() {
               <TableBody>
                 {pagedMembers.map(member => {
                   const affiliate = affiliates.find(item => item.id === member.affiliate_id);
-                  return <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.member_id?.toUpperCase()}</TableCell>
-                    <TableCell>
-                      <div>{member.name}</div>
-                      <div className="text-xs text-muted-foreground">{member.phone}</div>
-                    </TableCell>
-                    <TableCell>{affiliate?.acronym || 'Unlinked'}</TableCell>
-                    <TableCell>
-                      <div>{member.workplace}</div>
-                      <div className="text-xs text-muted-foreground">{member.job_category || '—'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div>{member.tucoswa_status || 'Active'}</div>
-                      <div className="text-xs text-muted-foreground">{member.subscription_status || 'Subscription not recorded'}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" title="Update worker" onClick={() => setSelectedMember(member)}>
-                          <FilePenLine className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" title="Membership card" onClick={() => credential(member, 'card')}>
-                          <IdCard className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" title="Mark resigned / deceased / transferred"
-                          onClick={() => {
-                            const next = window.prompt('Enter new status: Active, Resigned, Deceased, or Transferred',
-                              member.tucoswa_status || 'Active');
-                            if (next && ['Active', 'Resigned', 'Deceased', 'Transferred'].includes(next)) saveMember({ ...member, tucoswa_status: next as Member['tucoswa_status'] })
-                          }}>
-                          <ShieldCheck className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" title="Soft-delete worker record"
-                          onClick={() => markMemberDeleted(member.id)}
-                          className="text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  return (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">{member.member_id?.toUpperCase()}</TableCell>
+                      <TableCell>
+                        <div>{member.name}</div>
+                        <div className="text-xs text-muted-foreground">{member.phone}</div>
+                      </TableCell>
+                      <TableCell>{affiliate?.acronym || 'Unlinked'}</TableCell>
+                      <TableCell>
+                        <div>{member.workplace}</div>
+                        <div className="text-xs text-muted-foreground">{member.job_category || '—'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div>{member.tucoswa_status || 'Active'}</div>
+                        <div className="text-xs text-muted-foreground">{member.subscription_status || 'Subscription not recorded'}</div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" title="Update worker" onClick={() => setSelectedMember(member)}>
+                            <FilePenLine className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Membership card" onClick={() => credential(member, 'card')}>
+                            <IdCard className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Mark resigned / deceased / transferred"
+                            onClick={() => {
+                              const next = window.prompt('Enter new status: Active, Resigned, Deceased, or Transferred',
+                                member.tucoswa_status || 'Active');
+                              if (next && ['Active', 'Resigned', 'Deceased', 'Transferred'].includes(next)) saveMember({ ...member, tucoswa_status: next as Member['tucoswa_status'] })
+                            }}>
+                            <ShieldCheck className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Soft-delete worker record"
+                            onClick={() => markMemberDeleted(member.id)}
+                            className="text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
                 })}
               </TableBody>
             </Table>

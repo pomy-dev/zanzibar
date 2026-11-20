@@ -8,20 +8,27 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Users, DollarSign, Briefcase, AlertCircle, CheckCircle, Clock, Plus, Trash2, CalendarDays, ChevronRight } from 'lucide-react'
+import { Users, DollarSign, Briefcase, AlertCircle, CheckCircle, Clock, Plus, Trash2, CalendarDays, ChevronRight, Pencil } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { recordActivityLog } from '@/lib/constants'
 import { useUserIP } from '@/lib/userUserIp'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import type { Article, ArticleFormData } from '@/lib/types'
+import { createArticle, deleteArticle, deleteArticleAttachment, getArticles, getArticleFileUrl, updateArticle } from '@/services/article-service'
+import { FullScreenLoader } from '@/components/fullScreenLoader'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { ip } = useUserIP()
   const [activeTab, setActiveTab] = useState('overview')
-  const [articles, setArticles] = useState<any[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
   const [members, setMembers] = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
   const [financialRecords, setFinancialRecords] = useState<any[]>([])
@@ -33,23 +40,42 @@ export default function DashboardPage() {
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
   const [dashboardError, setDashboardError] = useState('')
   const [showArticleForm, setShowArticleForm] = useState(false)
-  const [articleForm, setArticleForm] = useState({
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null)
+  const [articleError, setArticleError] = useState('')
+  const [isSavingArticle, setIsSavingArticle] = useState(false)
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false)
+  const [featuredImagePreview, setFeaturedImagePreview] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [articleForm, setArticleForm] = useState<ArticleFormData>({
     title: '',
     content: '',
     category: 'General',
     published: false,
-    featuredImage: null as any,
+    featuredImage: null,
     featuredImageCaption: '',
-    attachedFiles: [] as any[]
+    attachedFiles: []
   })
 
   useEffect(() => {
-    try {
-      setArticles(JSON.parse(localStorage.getItem('articles') || '[]'))
-    } catch {
-      setArticles([])
+    if (activeTab !== 'articles' || !user) return
+    let cancelled = false
+    const loadArticles = async () => {
+      setArticleError('')
+      setIsLoadingArticles(true)
+      try {
+        const supabase = getSupabaseBrowserClient()
+        if (!supabase) throw new Error('Supabase is not configured.')
+        const result = await getArticles(supabase)
+        if (!cancelled) setArticles(result)
+      } catch (error) {
+        if (!cancelled) setArticleError(error instanceof Error ? error.message : 'Unable to load articles.')
+      } finally {
+        if (!cancelled) setIsLoadingArticles(false)
+      }
     }
-  }, [activeTab])
+    void loadArticles()
+    return () => { cancelled = true }
+  }, [activeTab, user])
 
   useEffect(() => {
     if (!user) return
@@ -99,68 +125,132 @@ export default function DashboardPage() {
 
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setArticleForm(prev => ({
-        ...prev,
-        featuredImage: ev.target?.result as string
-      }))
+      setFeaturedImagePreview(typeof ev.target?.result === 'string' ? ev.target.result : '')
     }
+    setArticleForm(prev => ({ ...prev, featuredImage: file, removeFeaturedImage: false }))
     reader.readAsDataURL(file)
+    e.target.value = ''
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        setArticleForm(prev => ({
-          ...prev,
-          attachedFiles: [...prev.attachedFiles, {
-            name: file.name,
-            url: ev.target?.result as string,
-            caption: ''
-          }]
-        }))
-      }
-      reader.readAsDataURL(file)
-    })
+    setArticleForm(prev => ({
+      ...prev,
+      attachedFiles: [...prev.attachedFiles, ...Array.from(files, file => ({
+        name: file.name,
+        caption: '',
+        file,
+        size: file.size,
+        type: file.type
+      }))]
+    }))
     e.target.value = ''
   }
 
-  const handleAddArticle = () => {
+  const resetArticleForm = () => {
+    setArticleForm({ title: '', content: '', category: 'General', published: false, featuredImage: null, featuredImageCaption: '', attachedFiles: [] })
+    setFeaturedImagePreview('')
+    setEditingArticle(null)
+    setShowArticleForm(false)
+  }
+
+  const handleAddArticle = async () => {
     if (!articleForm.title.trim() || !articleForm.content.trim()) {
-      alert('Please fill in all fields')
+      setArticleError('Please enter both an article title and content.')
       return
     }
 
-    const newArticle = {
-      id: `article_${Date.now()}`,
-      title: articleForm.title,
-      content: articleForm.content,
-      category: articleForm.category,
-      published: articleForm.published,
-      featuredImage: articleForm.featuredImage,
-      featuredImageCaption: articleForm.featuredImageCaption,
-      attachedFiles: articleForm.attachedFiles,
-      createdBy: user?.name,
-      createdAt: new Date().toISOString()
+    setIsSavingArticle(true)
+    setArticleError('')
+    try {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Supabase is not configured.')
+      const savedArticle = editingArticle
+        ? await updateArticle(supabase, editingArticle.id, articleForm)
+        : await createArticle(supabase, articleForm)
+      try {
+        setArticles(await getArticles(supabase))
+      } catch (refreshError) {
+        console.error('Article saved, but refreshing the article list failed:', refreshError)
+        setArticles(current => editingArticle
+          ? current.map(article => article.id === savedArticle.id ? savedArticle : article)
+          : [savedArticle, ...current])
+      }
+      try {
+        await recordActivityLog(editingArticle ? 'Updated' : 'Created', `${editingArticle ? 'Updated' : 'Created'} article - ${savedArticle.title}`, user?.id, user?.name, ip ?? undefined)
+      } catch (activityError) {
+        console.error('Article saved, but its activity log could not be recorded:', activityError)
+      }
+      toast.success("Content recorded successfully.")
+      resetArticleForm()
+    } catch (error) {
+      toast.error(`Failed to load content: ${error}`)
+      setArticleError(error instanceof Error ? error.message : 'Unable to save article.')
+    } finally {
+      setIsSavingArticle(false)
     }
-
-    const allArticles = [...articles, newArticle]
-    localStorage.setItem('articles', JSON.stringify(allArticles))
-    setArticles(allArticles)
-    setArticleForm({ title: '', content: '', category: 'General', published: false, featuredImage: null, featuredImageCaption: '', attachedFiles: [] })
-    setShowArticleForm(false)
-    recordActivityLog('Published', `Uploaded & published article - ${newArticle.title} ${newArticle.category}`, user?.id, user?.name, ip!)
   }
 
-  const handleDeleteArticle = (id: string) => {
-    const updated = articles.filter(a => a.id !== id)
-    localStorage.setItem('articles', JSON.stringify(updated))
-    setArticles(updated)
-    const deletedArticle = articles.find(a => a.id === id)?.title
-    recordActivityLog('Unpublish', `Removed article - ${deletedArticle}`, user?.id, user?.name, ip!)
+  const handleDeleteArticle = async (id: string) => {
+    const article = articles.find(item => item.id === id)
+    if (!article || !window.confirm(`Delete “${article.title}”? This cannot be undone.`)) return
+    setArticleError('')
+    try {
+      setIsDeleting(true)
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Supabase is not configured.')
+      await deleteArticle(supabase, id)
+      setArticles(current => current.filter(item => item.id !== id))
+      try {
+        await recordActivityLog('Deleted', `Deleted article - ${article.title}`, user?.id, user?.name, ip ?? undefined)
+      } catch (activityError) {
+        console.error('Article deleted, but its activity log could not be recorded:', activityError)
+      }
+      toast.success(`Article removed successfully.`)
+    } catch (error) {
+      toast.error(`Failed to delete: ${error}`)
+      setArticleError(error instanceof Error ? error.message : 'Unable to delete article.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleEditArticle = (article: Article) => {
+    setEditingArticle(article)
+    setArticleForm({
+      title: article.title,
+      content: article.content,
+      category: article.category,
+      published: article.published,
+      featuredImage: null,
+      removeFeaturedImage: false,
+      featuredImageCaption: article.featured_image_caption ?? '',
+      attachedFiles: []
+    })
+    const supabase = getSupabaseBrowserClient()
+    setFeaturedImagePreview(supabase && article.featured_image_path ? getArticleFileUrl(supabase, article.featured_image_path) : '')
+    setArticleError('')
+    setShowArticleForm(true)
+  }
+
+  const handleDeleteExistingAttachment = async (attachmentId: string) => {
+    try {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Supabase is not configured.')
+      await deleteArticleAttachment(supabase, attachmentId)
+      const refreshed = await getArticles(supabase)
+      setArticles(refreshed)
+      setEditingArticle(refreshed.find(article => article.id === editingArticle?.id) ?? null)
+    } catch (error) {
+      setArticleError(error instanceof Error ? error.message : 'Unable to delete attachment.')
+    }
+  }
+
+  const getAttachmentUrl = (filePath: string) => {
+    const supabase = getSupabaseBrowserClient()
+    return supabase ? getArticleFileUrl(supabase, filePath) : '#'
   }
 
   const stats = useMemo(() => {
@@ -226,6 +316,7 @@ export default function DashboardPage() {
     .filter(item => item.status !== 'completed')
     .sort((a, b) => Date.parse(b.updated_at || b.created_at) - Date.parse(a.updated_at || a.created_at))
     .slice(0, 5), [cases])
+
   const upcomingEvents = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
     return events.filter(event => !event.archived && String(event.event_date ?? '').slice(0, 10) >= today)
@@ -378,50 +469,6 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-3">
-              <div>
-                <CardTitle>Affiliate membership snapshot</CardTitle>
-                <CardDescription>Top three active affiliates by registered individual members</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/members')}>
-                More <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoadingDashboard ? <p className="text-sm text-muted-foreground">Loading affiliate data…</p> : affiliateSnapshot.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active affiliates found.</p>
-              ) : (
-                <div className="space-y-5">
-                  {affiliateSnapshot.map(affiliate => (
-                    <div key={affiliate.id} className="grid gap-3 border-b border-border pb-4 last:border-0 last:pb-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_minmax(180px,1fr)] md:items-center">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{affiliate.acronym || affiliate.official_name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{affiliate.official_name}</p>
-                      </div>
-                      <Badge variant="secondary">{affiliate.status || 'Status not recorded'}</Badge>
-                      <div>
-                        <Badge className={affiliate.financial_standing === 'Good standing' ? 'bg-emerald-100 text-emerald-800' : affiliate.financial_standing === 'Arrears' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
-                          {affiliate.financial_standing || 'Standing not recorded'}
-                        </Badge>
-                        <p className="mt-1 text-xs text-muted-foreground">Last subscription: {affiliate.lastSubscription?.payment_date ? new Date(affiliate.lastSubscription.payment_date).toLocaleDateString() : 'Not recorded'}</p>
-                      </div>
-                      <div>
-                        <div className="mb-1 flex justify-between text-xs">
-                          <span>{affiliate.memberCount} members</span>
-                          <span>{affiliate.membershipProgress}% of largest affiliate</span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label={`${affiliate.acronym || affiliate.official_name} membership compared with largest affiliate`} aria-valuenow={affiliate.membershipProgress} aria-valuemin={0} aria-valuemax={100}>
-                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${affiliate.membershipProgress}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-3">
@@ -483,6 +530,50 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <div>
+                <CardTitle>Affiliate membership snapshot</CardTitle>
+                <CardDescription>Top three active affiliates by registered individual members</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => router.push('/members')}>
+                More <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDashboard ? <p className="text-sm text-muted-foreground">Loading affiliate data…</p> : affiliateSnapshot.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active affiliates found.</p>
+              ) : (
+                <div className="space-y-5">
+                  {affiliateSnapshot.map(affiliate => (
+                    <div key={affiliate.id} className="grid gap-3 border-b border-border pb-4 last:border-0 last:pb-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_minmax(180px,1fr)] md:items-center">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{affiliate.acronym || affiliate.official_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{affiliate.official_name}</p>
+                      </div>
+                      <Badge variant="secondary">{affiliate.status || 'Status not recorded'}</Badge>
+                      <div>
+                        <Badge className={affiliate.financial_standing === 'Good standing' ? 'bg-emerald-100 text-emerald-800' : affiliate.financial_standing === 'Arrears' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
+                          {affiliate.financial_standing || 'Standing not recorded'}
+                        </Badge>
+                        <p className="mt-1 text-xs text-muted-foreground">Last subscription: {affiliate.lastSubscription?.payment_date ? new Date(affiliate.lastSubscription.payment_date).toLocaleDateString() : 'Not recorded'}</p>
+                      </div>
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span>{affiliate.memberCount} members</span>
+                          <span>{affiliate.membershipProgress}% of largest affiliate</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label={`${affiliate.acronym || affiliate.official_name} membership compared with largest affiliate`} aria-valuenow={affiliate.membershipProgress} aria-valuemin={0} aria-valuemax={100}>
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${affiliate.membershipProgress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -494,18 +585,22 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold">Articles & Content</h2>
               <p className="text-muted-foreground mt-1">Manage articles that appear on the website</p>
             </div>
-            <Button onClick={() => setShowArticleForm(true)} className="gap-2">
+            <Button onClick={() => { setEditingArticle(null); setArticleError(''); setFeaturedImagePreview(''); setArticleForm({ title: '', content: '', category: 'General', published: false, featuredImage: null, featuredImageCaption: '', attachedFiles: [] }); setShowArticleForm(true) }} className="gap-2">
               <Plus className="w-4 h-4" />
               New Article
             </Button>
           </div>
 
           {showArticleForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Create New Article</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <Dialog open={showArticleForm} onOpenChange={setShowArticleForm}>
+              <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingArticle ? 'Edit Article' : 'Create New Article'}</DialogTitle>
+                  <DialogDescription>Write, publish, and manage website articles.</DialogDescription>
+                </DialogHeader>
+
+                {articleError && <p role="alert" className="text-sm text-destructive">{articleError}</p>}
+
                 <div>
                   <Label htmlFor="title">Article Title *</Label>
                   <Input
@@ -561,20 +656,23 @@ export default function DashboardPage() {
                         />
                       </label>
                     </div>
-                    {articleForm.featuredImage && (
+                    {featuredImagePreview && (
                       <Button
                         type="button"
                         variant="ghost"
-                        onClick={() => setArticleForm({ ...articleForm, featuredImage: null })}
+                        onClick={() => {
+                          setArticleForm(prev => ({ ...prev, featuredImage: null, removeFeaturedImage: Boolean(editingArticle?.featured_image_path) }))
+                          setFeaturedImagePreview('')
+                        }}
                       >
                         Remove
                       </Button>
                     )}
                   </div>
-                  {articleForm.featuredImage && (
+                  {featuredImagePreview && (
                     <div className='flex flex-wrap items-start gap-8 mt-6'>
                       <div>
-                        <img src={articleForm.featuredImage} alt="Featured" className="w-40 h-40 object-stretch rounded" />
+                        <img src={featuredImagePreview} alt="Featured preview" className="w-40 h-40 rounded object-cover" />
                       </div>
 
                       <div>
@@ -591,8 +689,23 @@ export default function DashboardPage() {
                   )}
                 </div>
 
+                {editingArticle?.attachments && editingArticle.attachments.length > 0 && (
+                  <div>
+                    <Label className="mb-2 block">Existing attachments</Label>
+                    <div className="space-y-2">
+                      {editingArticle.attachments.map(attachment => (
+                        <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                          <a className="min-w-0 truncate text-sm underline" href={getAttachmentUrl(attachment.file_path)} target="_blank" rel="noreferrer">{attachment.file_name}</a>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => void handleDeleteExistingAttachment(attachment.id)} aria-label={`Delete ${attachment.file_name}`}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <Label>Attach Files</Label>
+                  <p className="mb-2 text-xs text-muted-foreground">PDF, Word, Excel, PowerPoint, text, CSV, or image files.</p>
                   <label>
                     <Button type="button" onClick={() => document.getElementById("articleFile")?.click()} variant="outline" className="w-full">
                       Upload Files
@@ -602,6 +715,7 @@ export default function DashboardPage() {
                       id='articleFile'
                       type="file"
                       multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,image/jpeg,image/png,image/gif,image/webp,image/avif"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -656,16 +770,19 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={handleAddArticle}>Create Article</Button>
-                  <Button variant="outline" onClick={() => setShowArticleForm(false)}>Cancel</Button>
+                  <Button onClick={() => void handleAddArticle()} disabled={isSavingArticle}>{isSavingArticle ? 'Saving…' : editingArticle ? 'Save Changes' : 'Create Article'}</Button>
+                  <Button variant="outline" onClick={resetArticleForm} disabled={isSavingArticle}>Cancel</Button>
                 </div>
-              </CardContent>
-            </Card>
+              </DialogContent>
+            </Dialog>
           )}
 
           {/* Articles List */}
+          {articleError && !showArticleForm && <p role="alert" className="text-sm text-destructive">{articleError}</p>}
           <div className="grid gap-4">
-            {articles.length === 0 ? (
+            {isLoadingArticles ? (
+              <Card><CardContent className="pt-6 text-center text-muted-foreground">Loading articles…</CardContent></Card>
+            ) : articles.length === 0 ? (
               <Card>
                 <CardContent className="pt-6 text-center text-muted-foreground">
                   No articles yet. Create your first article to get started!
@@ -693,18 +810,17 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                           <span className="px-2 py-1 bg-muted rounded">{article.category}</span>
-                          <span>{new Date(article.createdAt).toLocaleDateString()}</span>
-                          <span>By {article.createdBy}</span>
+                          <span>{new Date(article.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteArticle(article.id)}
-                        className="text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex shrink-0">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditArticle(article)} aria-label={`Edit ${article.title}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => void handleDeleteArticle(article.id)} className="text-destructive hover:bg-destructive/10" aria-label={`Delete ${article.title}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -716,6 +832,7 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      <FullScreenLoader isLoading={isDeleting} />
     </div>
   )
 }

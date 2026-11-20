@@ -1,3 +1,46 @@
+export interface Article {
+  id: string
+  title: string
+  content: string
+  category: string
+  published: boolean
+  featured_image_path: string | null
+  featured_image_caption: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  attachments?: ArticleAttachment[]
+}
+
+export interface ArticleAttachment {
+  id: string
+  article_id: string
+  file_name: string
+  file_path: string
+  file_type: string | null
+  file_size: number | null
+  caption: string
+  created_at: string
+}
+
+export interface ArticleFormData {
+  title: string
+  content: string
+  category: string
+  published: boolean
+  featuredImage: File | null
+  removeFeaturedImage?: boolean
+  featuredImageCaption: string
+  attachedFiles: ArticleFormAttachment[]
+}
+
+export interface ArticleFormAttachment {
+  name: string
+  caption: string
+  file: File,
+  size: number,
+  type: string
+}
 // ---------- Users ----------
 export interface AppUser {
   id: string

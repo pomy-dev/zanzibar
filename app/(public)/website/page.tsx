@@ -6,9 +6,16 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, BookOpen, CheckCircle, Clock, Handshake, Heart, Mail, MapPin, Megaphone, MessageCircle, Scale, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
 import Twitter from '@/public/twitter.png'
 import Facebook from '@/public/facebook.png'
-import { Member, HelpDeskCase } from '@/lib/types'
+import type { Article, ArticleAttachment, Member, HelpDeskCase } from '@/lib/types'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { FileCaseModal } from '@/components/modals/file-case-modal'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getArticleFileUrl, getArticles } from '@/services/article-service'
+
+type PublicArticle = Article & {
+  featuredImageUrl: string | null
+  attachmentUrls: Record<string, string>
+}
 
 export default function PublicWebsite() {
   const [statistics, setStatistics] = useState({
@@ -18,34 +25,42 @@ export default function PublicWebsite() {
     cases: 0
   });
 
-  const [publishedArticles, setPublishedArticles] = useState<any[]>([]);
+  const [publishedArticles, setPublishedArticles] = useState<PublicArticle[]>([]);
+  const [articleLoadError, setArticleLoadError] = useState('')
   const aboutSectionRef = useRef<HTMLDivElement>(null)
 
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showFileModal, setShowFileModal] = useState(false)
-  const [selectedArticle, setSelectedArticle] = useState<any>(null)
+  const [selectedArticle, setSelectedArticle] = useState<PublicArticle | null>(null)
 
-  // Load data from localStorage ONLY on client after mount
+  // Load published articles and their media from Supabase.
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const members = JSON.parse(localStorage.getItem('members') || '[]');
-    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-    const cases = JSON.parse(localStorage.getItem('helpdesk_cases') || '[]');
-    const articles = JSON.parse(localStorage.getItem('articles') || '[]');
-    const ongoing = projects.filter((p: any) => p.status === 'ongoing' || p.status === 'in_progress');
-
-    const published = articles.filter((a: any) => a.published === true);
-
-    setPublishedArticles(published);
-
-    setStatistics({
-      members: members.length,
-      projects: ongoing.length,
-      branches: 2,
-      cases: cases.filter((c: any) => c.status !== 'completed' && c.status !== 'resolved').length
-    });
+    let cancelled = false
+    const loadPublicContent = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient()
+        if (!supabase) throw new Error('Public articles are temporarily unavailable.')
+        const articles = await getArticles(supabase)
+        if (cancelled) return
+        const publicArticles = articles.filter(article => article.published).map(article => ({
+          ...article,
+          featuredImageUrl: article.featured_image_path ? getArticleFileUrl(supabase, article.featured_image_path) : null,
+          attachmentUrls: Object.fromEntries((article.attachments ?? []).map((attachment: ArticleAttachment) => [
+            attachment.id,
+            getArticleFileUrl(supabase, attachment.file_path)
+          ]))
+        }))
+        setPublishedArticles(publicArticles)
+        setArticleLoadError('')
+      } catch (error) {
+        if (!cancelled) setArticleLoadError(error instanceof Error ? error.message : 'Unable to load public articles.')
+      }
+    }
+    void loadPublicContent()
+    return () => { cancelled = true }
   }, []);
 
   const handleFileCase = async (caseData: Partial<HelpDeskCase>) => {
@@ -55,18 +70,18 @@ export default function PublicWebsite() {
         id: `case_${Date.now()}`,
         // branchId: user!.branchId,
         title: caseData.title!,
-        memberName: caseData.memberName!,
-        memberPhone: caseData.memberPhone!,
-        memberEmail: caseData.memberEmail!,
+        member_name: caseData.member_name!,
+        member_phone: caseData.member_phone!,
+        member_email: caseData.member_email!,
         description: caseData.description!,
         status: caseData.status!,
         handlers: caseData.handlers!,
         documents: [],
         notes: [],
-        createdBy: caseData.createdBy!,
-        createdByName: caseData.createdByName!,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        created_by: caseData.created_by!,
+        created_by_name: caseData.created_by_name!,
+        created_at: new Date(),
+        updated_at: new Date()
       }
 
       const allCases = JSON.parse(localStorage.getItem('helpDeskCases') || '[]')
@@ -105,7 +120,7 @@ export default function PublicWebsite() {
             <Button type="button" className="bg-[#e96b3b] text-white shadow-lg shadow-orange-900/15 hover:bg-[#d9582b]" onClick={() => setShowAddMemberModal(true)}>Join ZATUC</Button>
           </div>
         </div>
-        
+
       </nav>
 
       <main id="top">
@@ -132,7 +147,7 @@ export default function PublicWebsite() {
             <div className="relative">
               <div className="absolute -inset-3 rounded-[2rem] border border-[#f4c95d]/30 rotate-3" />
               <div className="relative overflow-hidden rounded-[2rem] border-8 border-white/10 bg-slate-800 shadow-2xl shadow-black/30 transition duration-700 hover:-translate-y-2 hover:rotate-1">
-                <img src="/zatuc-union-march.png" alt="Workers marching together in Tanzania" className="aspect-[4/3] w-full object-cover" />
+                <img src="/executive.jpeg" alt="Workers marching together in Tanzania" className="aspect-[4/3] w-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0f2d46] via-[#0f2d46]/70 to-transparent p-6 pt-20">
                   <p className="max-w-sm text-sm font-semibold leading-6 text-white">“In unity we are guaranteed strength.”</p>
                   <p className="mt-2 text-xs font-bold uppercase tracking-widest text-[#f4c95d]">The ZATUC spirit</p>
@@ -174,7 +189,7 @@ export default function PublicWebsite() {
         <section
           aria-label="Zanzibar communities standing together in solidarity"
           className="min-h-[100svh] w-full bg-[#173f5f] bg-cover bg-center bg-fixed"
-          style={{ backgroundImage: "url('/zanzibar-community.jpg')" }}
+          style={{ backgroundImage: "url('/hands-on.jpeg')" }}
         />
 
         <section id="priorities" className="bg-[#eef3f5] px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
@@ -188,7 +203,7 @@ export default function PublicWebsite() {
               ))}
             </div>
             <div className="mt-8 grid gap-6 rounded-3xl bg-white p-5 shadow-sm md:grid-cols-[0.9fr_1.1fr] md:p-8">
-              <img src="/stone-town-workers.jpg" alt="Workers and traders in Stone Town, Zanzibar" className="h-full min-h-64 w-full rounded-2xl object-cover" />
+              <img src="/meeting.jpeg" alt="Workers and traders in Stone Town, Zanzibar" className="h-full min-h-64 w-full rounded-2xl object-cover" />
               <div className="flex flex-col justify-center p-2 md:p-6"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#e96b3b]">Democracy is workplace work</p><h3 className="mt-4 text-3xl font-black leading-tight text-[#173f5f]">Accountability grows when workers have a seat at the table.</h3><p className="mt-5 leading-7 text-slate-600">ZATUC’s organising and education work connects workplace realities with social dialogue — strengthening participation, gender equality, and accountable union structures.</p><div className="mt-7 flex items-center gap-3 text-sm font-bold text-[#173f5f]"><BookOpen className="h-5 w-5 text-[#e96b3b]" /> Education, participation, representation</div></div>
             </div>
           </div>
@@ -202,7 +217,7 @@ export default function PublicWebsite() {
             </div>
             <p className="max-w-sm text-sm leading-6 text-slate-500">Follow union news, events, and member-led action from across Zanzibar.</p>
           </div>
-          {publishedArticles.length > 0
+          {articleLoadError ? <p role="alert" className="mt-10 text-sm text-slate-500">{articleLoadError}</p> : publishedArticles.length > 0
             ? <div className="mt-10 grid gap-6 md:grid-cols-3">
               {publishedArticles.slice(0, 3).map(article =>
                 <ArticleCard key={article.id} article={article} onReadMore={setSelectedArticle} />
@@ -219,7 +234,7 @@ export default function PublicWebsite() {
         <section
           aria-label="Zanzibar heritage, livelihoods, and working communities"
           className="min-h-[100svh] w-full bg-[#173f5f] bg-cover bg-center bg-fixed"
-          style={{ backgroundImage: "url('/zanzibar-heritage.jpg')" }}
+          style={{ backgroundImage: "url('/funding.jpeg')" }}
         />
 
         <section id="contact" className="bg-[#e96b3b] px-4 py-16 text-white sm:px-6 lg:px-8">
@@ -247,7 +262,7 @@ export default function PublicWebsite() {
             const newMember: Member = {
               ...member,
               id: `member_${Date.now()}`,
-              joinDate: new Date()
+              join_date: new Date()
             }
             const updated = [...allMembers, newMember]
             localStorage.setItem('members', JSON.stringify(updated))
@@ -286,7 +301,7 @@ export default function PublicWebsite() {
   )
 
   // ========================= Full Article Modals ========================= //
-  function ArticleModal({ article, onClose }: { article: any; onClose: () => void }) {
+  function ArticleModal({ article, onClose }: { article: PublicArticle; onClose: () => void }) {
     if (!article) return null;
 
     return (
@@ -299,10 +314,9 @@ export default function PublicWebsite() {
                 <span className="px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
                   {article.category}
                 </span>
-                <span>{new Date(article.createdAt).toLocaleDateString('en-US', {
+                <span>{new Date(article.created_at).toLocaleDateString('en-US', {
                   year: 'numeric', month: 'long', day: 'numeric'
                 })}</span>
-                {article.createdBy && <span>By {article.createdBy}</span>}
               </div>
               <h1 className="text-3xl font-bold leading-tight">{article.title}</h1>
             </div>
@@ -314,16 +328,16 @@ export default function PublicWebsite() {
           {/* Content */}
           <div className="overflow-y-auto flex-1 p-6 space-y-8">
             {/* Featured Image */}
-            {article.featuredImage && (
+            {article.featuredImageUrl && (
               <div className="space-y-3 -mx-2">
                 <img
-                  src={article.featuredImage}
+                  src={article.featuredImageUrl}
                   alt={article.title}
                   className="w-full rounded-xl max-h-[500px] object-stretch"
                 />
-                {article.featuredImageCaption && (
+                {article.featured_image_caption && (
                   <p className="text-center text-sm text-muted-foreground italic px-2">
-                    {article.featuredImageCaption}
+                    {article.featured_image_caption}
                   </p>
                 )}
               </div>
@@ -337,24 +351,24 @@ export default function PublicWebsite() {
             </div>
 
             {/* Attached Files */}
-            {article.attachedFiles && article.attachedFiles.length > 0 && (
+            {article.attachments && article.attachments.length > 0 && (
               <div className="pt-6 border-t">
                 <h4 className="font-semibold mb-4 flex items-center gap-2">
-                  📎 Attached Files ({article.attachedFiles.length})
+                  📎 Attached Files ({article.attachments.length})
                 </h4>
                 <div className="grid gap-3">
-                  {article.attachedFiles.map((file: any, idx: number) => (
+                  {article.attachments.map((file, idx) => (
                     <a
-                      key={idx}
-                      href={file.url}
-                      download={file.name}
+                      key={file.id || idx}
+                      href={article.attachmentUrls[file.id] ?? '#'}
+                      download={file.file_name}
                       className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/50 group transition"
                     >
                       <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center text-2xl">
                         📄
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate group-hover:text-primary">{file.name}</p>
+                        <p className="font-medium truncate group-hover:text-primary">{file.file_name}</p>
                         {file.caption && (
                           <p className="text-sm text-muted-foreground line-clamp-2">{file.caption}</p>
                         )}
@@ -376,14 +390,14 @@ export default function PublicWebsite() {
     );
   }
 
-  function FeaturedArticle({ article, onReadMore }: { article: any; onReadMore: (a: any) => void }) {
+  function FeaturedArticle({ article, onReadMore }: { article: PublicArticle; onReadMore: (a: PublicArticle) => void }) {
     return (
       <Card className="overflow-hidden group cursor-pointer" onClick={() => onReadMore(article)}>
         <div className="md:flex">
-          {article.featuredImage && (
+          {article.featuredImageUrl && (
             <div className="md:w-5/12 relative">
               <img
-                src={article.featuredImage}
+                src={article.featuredImageUrl}
                 alt={article.title}
                 className="w-full h-full object-cover aspect-video md:aspect-auto"
               />
@@ -396,7 +410,7 @@ export default function PublicWebsite() {
           )}
           <div className="p-8 md:w-7/12 flex flex-col">
             <div className="text-sm text-muted-foreground mb-3">
-              {new Date(article.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              {new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </div>
 
             <h2 className="text-3xl font-bold leading-tight mb-4 group-hover:text-primary transition">
@@ -416,16 +430,16 @@ export default function PublicWebsite() {
     );
   }
 
-  function ArticleCard({ article, onReadMore }: { article: any; onReadMore: (a: any) => void }) {
+  function ArticleCard({ article, onReadMore }: { article: PublicArticle; onReadMore: (a: PublicArticle) => void }) {
     return (
       <Card
         className="overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
         onClick={() => onReadMore(article)}
       >
-        {article.featuredImage && (
+        {article.featuredImageUrl && (
           <div className="relative h-48 overflow-hidden">
             <img
-              src={article.featuredImage}
+              src={article.featuredImageUrl}
               alt={article.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
@@ -439,7 +453,7 @@ export default function PublicWebsite() {
 
         <div className="p-6 flex-1 flex flex-col">
           <p className="text-xs text-muted-foreground mb-2">
-            {new Date(article.createdAt).toLocaleDateString()}
+            {new Date(article.created_at).toLocaleDateString()}
           </p>
 
           <h3 className="font-semibold text-lg leading-tight mb-3 line-clamp-3 group-hover:text-primary transition">
