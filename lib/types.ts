@@ -487,6 +487,7 @@ export interface Event {
   notes: string;
   event_date: string;
   location: string;
+  archived?: boolean;
   stakeholders?: string[]
   images?: EventFile[]
   documents?: EventFile[]

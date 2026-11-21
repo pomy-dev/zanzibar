@@ -97,7 +97,7 @@ export default function EventsPage() {
 
   const normalizedRole = user?.role.toLowerCase().replace(/[_-]+/g, ' ').trim()
   const isSecretaryGeneral = normalizedRole === 'secretary general' || normalizedRole === 'sg'
-  const isBranchAdmin = normalizedRole === 'branch admin' || normalizedRole === 'branch administrator'
+  const isBranchAdmin = normalizedRole === 'branch admin' || normalizedRole === 'branch administrator' || normalizedRole === 'branch secretary'
 
   useEffect(() => {
     if (!user) return

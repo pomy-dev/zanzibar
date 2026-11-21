@@ -20,8 +20,6 @@ export function Sidebar() {
         try {
           const accesses = await getAccessesByRole(user?.role)
           if (accesses) {
-            console.log("My Role", user?.role)
-            // console.log("My Accesses", accesses)
             setUserAccesses(accesses)
           }
 

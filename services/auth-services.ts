@@ -105,7 +105,6 @@ export async function getAccessesByRoleName(client: SupabaseClient, session: Ses
   if (!data || data.length === 0) return []
 
   const accesses: string[] = data.map((access: any) => access);
-  console.log("My accesses", accesses)
   return accesses;
 }
 

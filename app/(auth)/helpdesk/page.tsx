@@ -96,9 +96,9 @@ export default function HelpdeskPage() {
     try {
       setIsLoading(true)
       const loadedCases = await getHelpdeskCases(supabase)
-      setCases(loadedCases.filter(c =>
-        roles.find((r) => r.name === user?.role) || c.branch_id === user?.branchId
-      ))
+      const roleName = user?.role.toLowerCase().replaceAll('_', ' ').trim()
+      const isSecretaryGeneral = roleName === 'secretary general' || roleName === 'sg'
+      setCases(loadedCases.filter(c => isSecretaryGeneral || c.branch_id === user?.branchId))
     } catch (error) {
       console.error(error)
     } finally {

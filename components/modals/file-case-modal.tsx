@@ -18,15 +18,12 @@ interface FileCaseModalProps {
   onSubmit: (caseData: Partial<HelpDeskCase>) => void | Promise<void>
   isLoading?: boolean
   affiliate?: { id: string; name: string }
+  availableBranches?: { id: string; name: string }[]
 }
 
-export function FileCaseModal({ open, onOpenChange, onSubmit, isLoading, affiliate }: FileCaseModalProps) {
+export function FileCaseModal({ open, onOpenChange, onSubmit, isLoading, affiliate, availableBranches = [] }: FileCaseModalProps) {
   const { user } = useAuth()
-  const [branches] = useState([
-    { id: 'lagos', name: 'Manzini Branch' },
-    { id: 'abuja', name: 'Siteki Branch' },
-    { id: 'port-harcourt', name: 'Mhlume Branch' }
-  ])
+  const branches = availableBranches
 
   const [formData, setFormData] = useState({
     title: '',

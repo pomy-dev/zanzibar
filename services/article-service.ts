@@ -101,7 +101,7 @@ export async function createArticle(
           file_path: filePath,
           file_type: file.type,
           file_size: file.size,
-          caption: file.caption
+          caption: file?.caption
         })
       }
 
@@ -115,10 +115,11 @@ export async function createArticle(
     return article
 
   } catch (error) {
+    console.log("Error encounted:", error)
     // Clean up uploaded files if the operation fails
-    if (uploadedPaths.length > 0) {
-      await supabase.storage.from(BUCKET).remove(uploadedPaths)
-    }
+    // if (uploadedPaths.length > 0) {
+    //   await supabase.storage.from(BUCKET).remove(uploadedPaths)
+    // }
 
     throw error
   }

@@ -86,15 +86,18 @@ export default function DashboardPage() {
       try {
         const supabase = getSupabaseBrowserClient()
         if (!supabase) throw new Error('Supabase is not configured.')
+        const role = user.role.toLowerCase().replaceAll('_', ' ').trim()
+        const branchScoped = ['branch admin', 'branch administrator', 'branch secretary'].includes(role)
+        const branchId = branchScoped ? user.branchId : null
         const [memberResult, branchResult, financeResult, projectResult, caseResult, affiliateResult, paymentResult, eventResult] = await Promise.all([
-          supabase.from('members').select('id, branch_id, affiliate_id, tucoswa_status'),
-          supabase.from('branches').select('id, branch_name'),
-          supabase.from('financial_records').select('transaction_type, amount, transaction_date'),
-          supabase.from('projects').select('id, status'),
-          supabase.from('helpdesk_cases').select('id, title, status, updated_at, created_at, branch_id, affiliate_id'),
+          (() => { let q = supabase.from('members').select('id, branch_id, affiliate_id, tucoswa_status'); if (branchId) q = q.eq('branch_id', branchId); return q })(),
+          (() => { let q = supabase.from('branches').select('id, branch_name'); if (branchId) q = q.eq('id', branchId); return q })(),
+          (() => { let q = supabase.from('financial_records').select('transaction_type, amount, transaction_date'); if (branchId) q = q.eq('branch_id', branchId); return q })(),
+          (() => { let q = supabase.from('projects').select('id, status'); if (branchId) q = q.eq('branch_id', branchId); return q })(),
+          (() => { let q = supabase.from('helpdesk_cases').select('id, title, status, updated_at, created_at, branch_id, affiliate_id'); if (branchId) q = q.eq('branch_id', branchId); return q })(),
           supabase.from('affiliates').select('id, official_name, acronym, status, financial_standing, declared_membership, active'),
           supabase.from('affiliate_payments').select('affiliate_id, payment_date, recorded_at, status'),
-          supabase.from('events').select('*'),
+          (() => { let q = supabase.from('events').select('*'); if (branchId) q = q.eq('branch_id', branchId); return q })(),
         ])
         const results = [memberResult, branchResult, financeResult, projectResult, caseResult, affiliateResult, paymentResult, eventResult]
         const failed = results.find(result => result.error)
@@ -134,19 +137,23 @@ export default function DashboardPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (!files) return
+    if (!files || files.length === 0) return // Handle no files selected
+
+    const newAttachedFiles = Array.from(files).map(file => ({
+      name: file.name,
+      caption: '',
+      file, // Store the File object
+      size: file.size,
+      type: file.type
+    }));
 
     setArticleForm(prev => ({
       ...prev,
-      attachedFiles: [...prev.attachedFiles, ...Array.from(files, file => ({
-        name: file.name,
-        caption: '',
-        file,
-        size: file.size,
-        type: file.type
-      }))]
-    }))
-    e.target.value = ''
+      attachedFiles: [...prev.attachedFiles, ...newAttachedFiles]
+    }));
+
+    // Clear the input value to allow selecting the same file(s) again
+    e.target.value = '';
   }
 
   const resetArticleForm = () => {
@@ -186,7 +193,7 @@ export default function DashboardPage() {
       toast.success("Content recorded successfully.")
       resetArticleForm()
     } catch (error) {
-      toast.error(`Failed to load content: ${error}`)
+      toast.error(`Failed to save article: ${error}`)
       setArticleError(error instanceof Error ? error.message : 'Unable to save article.')
     } finally {
       setIsSavingArticle(false)
@@ -348,7 +355,7 @@ export default function DashboardPage() {
         >
           Overview
         </button>
-        <button
+        {user?.role.toLowerCase() === "Secretary General".toLowerCase() && (<button
           onClick={() => setActiveTab('articles')}
           className={`px-4 py-2 font-medium text-sm border-b-2 transition ${activeTab === 'articles'
             ? 'border-primary text-primary'
@@ -356,7 +363,7 @@ export default function DashboardPage() {
             }`}
         >
           Articles & Content
-        </button>
+        </button>)}
       </div>
 
       {/* OVERVIEW TAB */}
@@ -383,9 +390,9 @@ export default function DashboardPage() {
                 <DollarSign className="w-4 h-4 text-accent" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">E{(stats.balance / 1000).toFixed(0)}K</div>
+                <div className="text-2xl font-bold">TZS{(stats.balance / 1000).toFixed(0)}K</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600 font-semibold">+E{(stats.totalIncome / 1000).toFixed(0)}K</span> income
+                  <span className="text-green-600 font-semibold">+TZS{(stats.totalIncome / 1000).toFixed(0)}K</span> income
                 </p>
               </CardContent>
             </Card>

@@ -381,7 +381,7 @@ export default function FinancialPage() {
   }
 
   const formatAmount = (value: number) =>
-    `E${(value / 1000).toFixed(value >= 1000 ? 0 : 1)}K`
+    `TZS${(value / 1000).toFixed(value >= 1000 ? 0 : 1)}K`
 
   // ---------- Render ----------
   return (

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { Member, UserRole } from '@/lib/types'
+import { Member } from '@/lib/types'
 import { getAllBranches } from '@/services/branch-service'
 import { useAuth } from '@/lib/auth-context'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -17,11 +17,13 @@ interface AddMemberModalProps {
   onSubmit: (member: Omit<Member, 'id' | 'join_date'>) => void | Promise<void>
   isLoading?: boolean
   branchId?: string
+  availableBranches?: { id: string; name: string }[]
 }
 
-export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branchId }: AddMemberModalProps) {
+export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branchId, availableBranches }: AddMemberModalProps) {
   const { user } = useAuth()
-  const [branches, setBranches] = useState<{ id: string; name: string }[]>([])
+  const [loadedBranches, setLoadedBranches] = useState<{ id: string; name: string }[]>([])
+  const branches = availableBranches ?? loadedBranches
 
   const [formData, setFormData] = useState({
     memberId: '',
@@ -42,15 +44,16 @@ export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branch
       console.error('Unable to load branches:', error)
     })
 
-    if (user?.role === "Branch Admin" && user?.branchId) {
+    if (user && (user.role.toLowerCase().replaceAll('_', ' ').includes('branch admin') || user.role.toLowerCase().replaceAll('_', ' ').includes('branch secretary')) && user.branchId) {
       setFormData(prev => ({
         ...prev,
         selectedBranch: user.branchId
       }))
     }
-  }, [user, open])
+  }, [user, open, availableBranches])
 
   const fetchBranches = async () => {
+    if (availableBranches) return
     try {
       const supabase = getSupabaseBrowserClient()
       if (!supabase) throw new Error('Supabase is not configured.')
@@ -63,7 +66,7 @@ export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branch
         adminId: b.admin_id ?? b.adminId,
         createdAt: b.created_at ? new Date(b.created_at) : new Date(),
       }))
-      setBranches(normalized)
+      setLoadedBranches(normalized)
     } catch (error) {
       console.error('Error fetching branches:', error)
     }
@@ -88,7 +91,7 @@ export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branch
       gender: formData.gender as 'Male' | 'Female' | 'Other',
       dob: formData.dob,
       workplace: formData.workplace,
-      branch_id: user?.role === UserRole.BRANCH_ADMIN ? branchId : formData.selectedBranch,
+      branch_id: user && (user.role.toLowerCase().replaceAll('_', ' ').includes('branch admin') || user.role.toLowerCase().replaceAll('_', ' ').includes('branch secretary')) ? user.branchId ?? branchId : formData.selectedBranch,
       address: formData.address,
       next_of_kin: formData.nextOfKinName,
       next_of_kin_phone: formData.nextOfKinPhone
@@ -233,7 +236,7 @@ export function AddMemberModal({ open, onOpenChange, onSubmit, isLoading, branch
           {/* select branch */}
           <div>
             <Label htmlFor="branch">Branch *</Label>
-            {user?.role === UserRole.BRANCH_ADMIN ? (
+            {user && (user.role.toLowerCase().replaceAll('_', ' ').includes('branch admin') || user.role.toLowerCase().replaceAll('_', ' ').includes('branch secretary')) ? (
               <div className="px-3 py-2 border border-border rounded-md text-sm bg-muted">
                 {branches.find(b => b.id === user.branchId)?.name ?? 'Selected Branch'}
               </div>
